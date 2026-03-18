@@ -31,16 +31,13 @@ let debounceTimer = null;
 function debounceSearch() {
   const query = document.getElementById('search-input').value.trim();
   clearTimeout(debounceTimer);
-
   if (!query) {
     document.getElementById('results-list').style.display = 'none';
     document.getElementById('results-list').innerHTML = '';
     document.getElementById('status-msg').style.display = 'none';
     return;
   }
-
   if (query.length < 2) return;
-
   showMsg('<span class="spinner"></span>Searching...', 'var(--text-muted)');
   debounceTimer = setTimeout(() => searchAlbum(), 400);
 }
@@ -110,6 +107,7 @@ function renderResults(items) {
 }
 
 async function loadAlbum(id) {
+  console.log('loadAlbum called', id);
   showMsg('<span class="spinner"></span>Loading tracks...', 'var(--text-muted)');
   document.getElementById('results-list').style.display = 'none';
 
@@ -128,6 +126,7 @@ async function loadAlbum(id) {
 
 // ─── RATER ───────────────────────────────────────────────────────────────────
 function renderRater(album) {
+  console.log('renderRater called', album);
   document.getElementById('status-msg').style.display = 'none';
   document.getElementById('setup-panel').style.display = 'none';
   document.getElementById('card-wrapper').style.display = 'none';
@@ -145,6 +144,13 @@ function renderRater(album) {
       <p>${artist} · ${year} · ${count} track${count !== 1 ? 's' : ''}</p>
     </div>
   `;
+
+  // ── MULTI-DISC DETECTION ──
+  const discNumbers = [...new Set(album.tracks.items.map(t => t.disc_number))];
+  const isMultiDisc = discNumbers.length > 1;
+  const discBanner = document.getElementById('disc-banner');
+  discBanner.style.display = isMultiDisc ? 'flex' : 'none';
+  if (isMultiDisc) document.getElementById('show-discs').checked = true;
 
   resetExtras();
 
@@ -194,6 +200,7 @@ function resetExtras() {
     reviewCount.textContent = `${reviewInput.value.length} / 300`;
   };
   document.getElementById('extra-track-length').checked = false;
+  document.getElementById('extra-popularity').checked = false;
   // ── RESET NEW EXTRAS HERE ──
 }
 
@@ -202,6 +209,8 @@ function getExtras() {
     name:        document.getElementById('extra-name').value.trim(),
     review:      document.getElementById('review-input').value.trim(),
     trackLength: document.getElementById('extra-track-length').checked,
+    popularity:  document.getElementById('extra-popularity').checked,
+    showDiscs:   document.getElementById('show-discs').checked,
     // ── ADD NEW EXTRAS HERE ──
     // newFeature: document.getElementById('extra-new-feature').checked,
   };
@@ -247,6 +256,9 @@ function generateCard() {
   const accent  = themeAccents[currentTheme];
   const extras  = getExtras();
 
+  const discNumbers = [...new Set(tracks.map(t => t.disc_number))];
+  const isMultiDisc = discNumbers.length > 1;
+
   function formatMs(ms) {
     if (!ms) return '';
     const m = Math.floor(ms / 60000);
@@ -254,18 +266,39 @@ function generateCard() {
     return `${m}:${s}`;
   }
 
+  let lastDisc = null;
   const trackRows = tracks.map((t, i) => {
     const r     = ratings[i];
     const barW  = (r / 10) * 100;
     const color = r <= 3 ? '#e05c5c' : r <= 6 ? '#e0b95c' : accent;
+
     const duration = extras.trackLength && t.duration_ms
       ? `<span class="ct-duration">${formatMs(t.duration_ms)}</span>`
       : '';
+
+    const pop = extras.popularity && t.popularity != null
+      ? `<span class="ct-pop">●${t.popularity}</span>`
+      : '';
+
+    // Only insert disc divider if album is multi-disc AND user has the toggle on
+    let discDivider = '';
+    if (isMultiDisc && extras.showDiscs && t.disc_number !== lastDisc) {
+      discDivider = `
+        <div class="card-disc-divider">
+          <span class="card-disc-label">Disc ${t.disc_number}</span>
+          <div class="card-disc-line"></div>
+        </div>
+      `;
+      lastDisc = t.disc_number;
+    }
+
     return `
+      ${discDivider}
       <div class="card-track">
         <span class="ct-num">${i + 1}</span>
         <span class="ct-name">${t.name}</span>
         ${duration}
+        ${pop}
         <div class="ct-bar-wrap"><div class="ct-bar" style="width:${barW}%;background:${color}"></div></div>
         <span class="ct-score" style="color:${color}">${r}</span>
       </div>
@@ -347,6 +380,7 @@ function resetAll() {
   document.getElementById('results-list').innerHTML = '';
   document.getElementById('status-msg').style.display = 'none';
   document.getElementById('search-input').value = '';
+  document.getElementById('disc-banner').style.display = 'none';
   currentAlbum = null;
 }
 

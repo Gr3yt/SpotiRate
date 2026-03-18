@@ -19,6 +19,7 @@
 </header>
 
 <main>
+
   <!-- SEARCH PANEL -->
   <div id="setup-panel">
     <div class="panel-label">Search</div>
@@ -34,9 +35,25 @@
 
   <!-- RATER PANEL -->
   <div id="rater-panel">
+
     <div class="album-header fade-in" id="album-header"></div>
 
-<!-- EXTRAS PANEL -->
+    <!-- MULTI-DISC BANNER — only shown if album has multiple discs -->
+    <div id="disc-banner" class="disc-banner" style="display:none">
+      <div class="disc-banner-left">
+        <span class="disc-icon">💿</span>
+        <div>
+          <div class="disc-banner-title">Multi-disc album detected</div>
+          <div class="disc-banner-sub">Show disc numbers as dividers on the card?</div>
+        </div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="show-discs" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- EXTRAS PANEL -->
     <div class="extras-panel fade-in">
       <button class="extras-toggle" onclick="toggleExtras(this)">
         <span>EXTRAS</span>
@@ -54,13 +71,15 @@
         </div>
 
         <!-- REVIEW -->
-        <div class="extra-row">
+        <div class="extra-row extra-row--textarea">
           <div class="extra-label">
             <span>Written Review</span>
             <span class="extra-desc">Short note shown on the card</span>
           </div>
-          <textarea id="review-input" class="extra-input extra-textarea" placeholder="Your thoughts..." maxlength="300"></textarea>
-          <div id="review-count" class="extra-char-count">0 / 300</div>
+          <div class="extra-textarea-wrap">
+            <textarea id="review-input" class="extra-input extra-textarea" placeholder="Your thoughts..." maxlength="300"></textarea>
+            <div id="review-count" class="extra-char-count">0 / 300</div>
+          </div>
         </div>
 
         <!-- TRACK LENGTH -->
@@ -75,16 +94,30 @@
           </label>
         </div>
 
+        <!-- POPULARITY -->
+        <div class="extra-row extra-row--toggle">
+          <div class="extra-label">
+            <span>Show Popularity Score</span>
+            <span class="extra-desc">Spotify's 0–100 score based on recent streams</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="extra-popularity">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
         <!-- ── ADD NEW EXTRAS ABOVE THIS LINE ── -->
 
       </div>
     </div>
 
     <div class="track-list fade-in" id="track-list"></div>
+
     <div class="actions">
       <button onclick="generateCard()">GENERATE CARD</button>
       <button class="secondary" onclick="resetAll()">← SEARCH AGAIN</button>
     </div>
+
   </div>
 
   <!-- EXPORT CARD -->
@@ -93,19 +126,21 @@
 
     <!-- THEME PICKER -->
     <div class="theme-picker">
-      <button class="theme-btn active" data-theme="dark" onclick="setTheme('dark', this)">DARK</button>
-      <button class="theme-btn" data-theme="albumart" onclick="setTheme('albumart', this)">ALBUM ART</button>
-      <button class="theme-btn" data-theme="green" onclick="setTheme('green', this)">GREEN</button>
-      <button class="theme-btn" data-theme="midnight" onclick="setTheme('midnight', this)">MIDNIGHT</button>
-      <button class="theme-btn" data-theme="warm" onclick="setTheme('warm', this)">WARM</button>
+      <button class="theme-btn active" data-theme="dark"     onclick="setTheme('dark', this)">DARK</button>
+      <button class="theme-btn"        data-theme="green"    onclick="setTheme('green', this)">GREEN</button>
+      <button class="theme-btn"        data-theme="midnight" onclick="setTheme('midnight', this)">MIDNIGHT</button>
+      <button class="theme-btn"        data-theme="warm"     onclick="setTheme('warm', this)">WARM</button>
+      <button class="theme-btn"        data-theme="albumart" onclick="setTheme('albumart', this)">ALBUM ART</button>
     </div>
 
     <div id="export-card"></div>
+
     <div class="card-actions">
       <button onclick="downloadCard(event)">DOWNLOAD IMAGE</button>
       <button class="secondary" onclick="document.getElementById('card-wrapper').style.display='none'">HIDE</button>
     </div>
   </div>
+
 </main>
 
 <script src="script.js"></script>

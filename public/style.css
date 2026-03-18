@@ -765,3 +765,94 @@ button.secondary {
 .theme-midnight .card-footer-name  { color: #2a2a55; }
 .theme-warm .card-footer-name      { color: #3a2510; }
 .theme-albumart .card-footer-name  { color: rgba(255,255,255,0.25); }
+
+/* ── MULTI-DISC BANNER ── */
+.disc-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  margin-bottom: 1.25rem;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.disc-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.disc-icon { font-size: 1.1rem; }
+
+.disc-banner-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.disc-banner-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+/* ── DISC DIVIDER ON CARD ── */
+.card-disc-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+.card-disc-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #1DB954;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.card-disc-line {
+  flex: 1;
+  height: 1px;
+  background: #1DB954;
+  opacity: 0.3;
+}
+
+/* ── TOGGLE SWITCH (for disc banner) ── */
+.toggle-switch {
+  position: relative;
+  width: 40px; height: 22px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 14px; height: 14px;
+  left: 3px; top: 3px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-slider { background: var(--accent-dim); border-color: var(--accent); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); background: var(--accent); }
