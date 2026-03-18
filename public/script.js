@@ -107,7 +107,6 @@ function renderResults(items) {
 }
 
 async function loadAlbum(id) {
-  console.log('loadAlbum called', id);
   showMsg('<span class="spinner"></span>Loading tracks...', 'var(--text-muted)');
   document.getElementById('results-list').style.display = 'none';
 
@@ -124,12 +123,123 @@ async function loadAlbum(id) {
   }
 }
 
+// ─── TRACK TAGS ──────────────────────────────────────────────────────────────
+// Stores tag overrides per track index. null = use normal rating.
+let trackTags = {};
+
+// Preset tags — add more here whenever you want
+const PRESET_TAGS = [
+  { label: 'Intro',        icon: '▶' },
+  { label: 'Outro',        icon: '■' },
+  { label: 'Intermission', icon: '⏸' },
+  { label: 'Interlude',    icon: '〰' },
+  { label: 'Skit',         icon: '💬' },
+];
+
+let openMenuIndex = null; // which track menu is currently open
+
+function openTrackMenu(i, btn) {
+  // Close any open menu first
+  closeAllMenus();
+
+  openMenuIndex = i;
+  const row = btn.closest('.track-row');
+  const currentTag = trackTags[i] || null;
+
+  const menu = document.createElement('div');
+  menu.className = 'track-menu';
+  menu.id = `track-menu-${i}`;
+
+  const presetItems = PRESET_TAGS.map(tag => `
+    <div class="track-menu-item ${currentTag === tag.label ? 'active' : ''}"
+         onclick="setTrackTag(${i}, '${tag.label}')">
+      <span class="track-menu-icon">${tag.icon}</span>
+      ${tag.label}
+    </div>
+  `).join('');
+
+  menu.innerHTML = `
+    ${presetItems}
+    <div class="track-menu-divider"></div>
+    <div class="track-menu-custom">
+      <input type="text" id="custom-tag-${i}" placeholder="Custom label..." maxlength="20"
+        onkeydown="if(event.key==='Enter') setTrackTag(${i}, document.getElementById('custom-tag-${i}').value.trim())">
+      <button onclick="setTrackTag(${i}, document.getElementById('custom-tag-${i}').value.trim())">OK</button>
+    </div>
+    ${currentTag ? `
+      <div class="track-menu-divider"></div>
+      <div class="track-menu-item danger" onclick="clearTrackTag(${i})">
+        <span class="track-menu-icon">✕</span>
+        Clear — use rating
+      </div>
+    ` : ''}
+  `;
+
+  row.appendChild(menu);
+
+  // Close menu when clicking outside
+  setTimeout(() => {
+    document.addEventListener('click', outsideClickHandler);
+  }, 0);
+}
+
+function outsideClickHandler(e) {
+  if (!e.target.closest('.track-menu') && !e.target.closest('.track-dots-btn')) {
+    closeAllMenus();
+  }
+}
+
+function closeAllMenus() {
+  document.querySelectorAll('.track-menu').forEach(m => m.remove());
+  document.removeEventListener('click', outsideClickHandler);
+  openMenuIndex = null;
+}
+
+function setTrackTag(i, tag) {
+  if (!tag) return;
+  trackTags[i] = tag;
+  updateTrackRow(i);
+  closeAllMenus();
+}
+
+function clearTrackTag(i) {
+  delete trackTags[i];
+  updateTrackRow(i);
+  closeAllMenus();
+}
+
+function updateTrackRow(i) {
+  const row = document.querySelector(`.track-row[data-index="${i}"]`);
+  if (!row) return;
+
+  const ratingGroup = row.querySelector('.rating-group');
+  const existingTag = row.querySelector('.track-tag-label');
+
+  if (trackTags[i]) {
+    // Show tag label, hide slider
+    if (ratingGroup) ratingGroup.style.display = 'none';
+    if (existingTag) {
+      existingTag.textContent = trackTags[i];
+    } else {
+      const tagEl = document.createElement('span');
+      tagEl.className = 'track-tag-label';
+      tagEl.textContent = trackTags[i];
+      row.insertBefore(tagEl, row.querySelector('.track-dots-btn'));
+    }
+  } else {
+    // Show slider, remove tag label
+    if (ratingGroup) ratingGroup.style.display = 'flex';
+    if (existingTag) existingTag.remove();
+  }
+}
+
 // ─── RATER ───────────────────────────────────────────────────────────────────
 function renderRater(album) {
-  console.log('renderRater called', album);
   document.getElementById('status-msg').style.display = 'none';
   document.getElementById('setup-panel').style.display = 'none';
   document.getElementById('card-wrapper').style.display = 'none';
+
+  trackTags = {}; // reset tags for new album
 
   const img    = album.images?.[0]?.url || '';
   const artist = album.artists.map(a => a.name).join(', ');
@@ -160,6 +270,7 @@ function renderRater(album) {
   album.tracks.items.forEach((track, i) => {
     const row = document.createElement('div');
     row.className = 'track-row';
+    row.dataset.index = i;
     row.innerHTML = `
       <span class="track-num">${i + 1}</span>
       <span class="track-name">${track.name}</span>
@@ -168,6 +279,7 @@ function renderRater(album) {
           data-track="${i}" oninput="updateRating(this)">
         <span class="rating-val" id="rval-${i}">5</span>
       </div>
+      <button class="track-dots-btn" onclick="openTrackMenu(${i}, this)" title="Tag this track">⋯</button>
     `;
     trackList.appendChild(row);
   });
@@ -212,7 +324,6 @@ function getExtras() {
     popularity:  document.getElementById('extra-popularity').checked,
     showDiscs:   document.getElementById('show-discs').checked,
     // ── ADD NEW EXTRAS HERE ──
-    // newFeature: document.getElementById('extra-new-feature').checked,
   };
 }
 
@@ -252,9 +363,14 @@ function generateCard() {
   const img     = album.images?.[0]?.url || '';
   const artist  = album.artists.map(a => a.name).join(', ');
   const year    = album.release_date?.slice(0, 4);
-  const avg     = (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1);
   const accent  = themeAccents[currentTheme];
   const extras  = getExtras();
+
+  // Overall average only counts tracks that have a numeric rating (not tagged)
+  const ratedValues = ratings.filter((_, i) => !trackTags[i]);
+  const avg = ratedValues.length
+    ? (ratedValues.reduce((a, b) => a + b, 0) / ratedValues.length).toFixed(1)
+    : '—';
 
   const discNumbers = [...new Set(tracks.map(t => t.disc_number))];
   const isMultiDisc = discNumbers.length > 1;
@@ -268,19 +384,29 @@ function generateCard() {
 
   let lastDisc = null;
   const trackRows = tracks.map((t, i) => {
-    const r     = ratings[i];
-    const barW  = (r / 10) * 100;
-    const color = r <= 3 ? '#e05c5c' : r <= 6 ? '#e0b95c' : accent;
+    const tag = trackTags[i] || null;
 
     const duration = extras.trackLength && t.duration_ms
       ? `<span class="ct-duration">${formatMs(t.duration_ms)}</span>`
       : '';
 
-    const pop = extras.popularity && t.popularity != null
+    const pop = !tag && extras.popularity && t.popularity != null
       ? `<span class="ct-pop">●${t.popularity}</span>`
       : '';
 
-    // Only insert disc divider if album is multi-disc AND user has the toggle on
+    // If tagged: show tag pill instead of bar + score
+    const ratingHtml = tag
+      ? `<span class="ct-tag">${tag}</span>`
+      : (() => {
+          const r     = ratings[i];
+          const barW  = (r / 10) * 100;
+          const color = r <= 3 ? '#e05c5c' : r <= 6 ? '#e0b95c' : accent;
+          return `
+            <div class="ct-bar-wrap"><div class="ct-bar" style="width:${barW}%;background:${color}"></div></div>
+            <span class="ct-score" style="color:${color}">${r}</span>
+          `;
+        })();
+
     let discDivider = '';
     if (isMultiDisc && extras.showDiscs && t.disc_number !== lastDisc) {
       discDivider = `
@@ -299,8 +425,7 @@ function generateCard() {
         <span class="ct-name">${t.name}</span>
         ${duration}
         ${pop}
-        <div class="ct-bar-wrap"><div class="ct-bar" style="width:${barW}%;background:${color}"></div></div>
-        <span class="ct-score" style="color:${color}">${r}</span>
+        ${ratingHtml}
       </div>
     `;
   }).join('');
@@ -381,6 +506,8 @@ function resetAll() {
   document.getElementById('status-msg').style.display = 'none';
   document.getElementById('search-input').value = '';
   document.getElementById('disc-banner').style.display = 'none';
+  closeAllMenus();
+  trackTags = {};
   currentAlbum = null;
 }
 
