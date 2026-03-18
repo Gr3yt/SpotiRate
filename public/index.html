@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SpotiRater</title>
+<title>SpotiRate</title>
 <link rel="icon" type="image/png" href="/images/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -14,23 +14,72 @@
 
 <header>
   <div class="logo-dot"></div>
-  <h1>Album Rater</h1>
+  <h1>SpotiRate</h1>
   <span id="token-status">CONNECTING...</span>
 </header>
 
 <main>
+  <!-- SEARCH PANEL -->
   <div id="setup-panel">
     <div class="panel-label">Search</div>
     <div class="search-row">
-      <input type="text" id="search-input" placeholder="Search for an album or single..." onkeydown="if(event.key==='Enter')searchAlbum()">
+      <input type="text" id="search-input" placeholder="Search for an album, single or EP..."
+        oninput="debounceSearch()"
+        onkeydown="if(event.key==='Enter'){clearTimeout(debounceTimer);searchAlbum();}">
       <button onclick="searchAlbum()" id="search-btn">SEARCH</button>
     </div>
     <div id="results-list"></div>
     <div id="status-msg"></div>
   </div>
 
+  <!-- RATER PANEL -->
   <div id="rater-panel">
     <div class="album-header fade-in" id="album-header"></div>
+
+<!-- EXTRAS PANEL -->
+    <div class="extras-panel fade-in">
+      <button class="extras-toggle" onclick="toggleExtras(this)">
+        <span>EXTRAS</span>
+        <span class="extras-arrow">▼</span>
+      </button>
+      <div class="extras-body" id="extras-body">
+
+        <!-- NAME -->
+        <div class="extra-row">
+          <div class="extra-label">
+            <span>Your Name</span>
+            <span class="extra-desc">Shows on the card as "rated by"</span>
+          </div>
+          <input type="text" id="extra-name" class="extra-input" placeholder="e.g. gr3yt" maxlength="30">
+        </div>
+
+        <!-- REVIEW -->
+        <div class="extra-row">
+          <div class="extra-label">
+            <span>Written Review</span>
+            <span class="extra-desc">Short note shown on the card</span>
+          </div>
+          <textarea id="review-input" class="extra-input extra-textarea" placeholder="Your thoughts..." maxlength="300"></textarea>
+          <div id="review-count" class="extra-char-count">0 / 300</div>
+        </div>
+
+        <!-- TRACK LENGTH -->
+        <div class="extra-row extra-row--toggle">
+          <div class="extra-label">
+            <span>Show Track Length</span>
+            <span class="extra-desc">Displays duration next to each track</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="extra-track-length">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- ── ADD NEW EXTRAS ABOVE THIS LINE ── -->
+
+      </div>
+    </div>
+
     <div class="track-list fade-in" id="track-list"></div>
     <div class="actions">
       <button onclick="generateCard()">GENERATE CARD</button>
@@ -38,8 +87,19 @@
     </div>
   </div>
 
+  <!-- EXPORT CARD -->
   <div id="card-wrapper">
     <div class="section-label">Your Rating Card</div>
+
+    <!-- THEME PICKER -->
+    <div class="theme-picker">
+      <button class="theme-btn active" data-theme="dark" onclick="setTheme('dark', this)">DARK</button>
+      <button class="theme-btn" data-theme="albumart" onclick="setTheme('albumart', this)">ALBUM ART</button>
+      <button class="theme-btn" data-theme="green" onclick="setTheme('green', this)">GREEN</button>
+      <button class="theme-btn" data-theme="midnight" onclick="setTheme('midnight', this)">MIDNIGHT</button>
+      <button class="theme-btn" data-theme="warm" onclick="setTheme('warm', this)">WARM</button>
+    </div>
+
     <div id="export-card"></div>
     <div class="card-actions">
       <button onclick="downloadCard(event)">DOWNLOAD IMAGE</button>
