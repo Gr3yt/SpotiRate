@@ -2,11 +2,11 @@
   publish = "public"
   functions = "netlify/functions"
 
+[build.processing]
+  skip_processing = false
 
-[[redirects]]
-  from = "/"
-  to = "/home.html"
-  status = 200
+[build.processing.html]
+  pretty_urls = true
 
 [[headers]]
   for = "/*"
