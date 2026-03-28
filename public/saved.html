@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpotiRate — Saved</title>
+<link rel="icon" type="image/png" href="/images/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .saved-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .saved-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+
+  .saved-card:hover { border-color: var(--accent); }
+
+  .saved-card-header {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .saved-card-img {
+    width: 52px; height: 52px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .saved-card-info { flex: 1; min-width: 0; }
+  .saved-card-name { font-size: 0.875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .saved-card-artist { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+  .saved-card-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent-dim);
+    border: 1px solid #1DB95433;
+    border-radius: 5px;
+    padding: 2px 8px;
+    margin-top: 0.3rem;
+  }
+
+  .saved-card-score-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .saved-card-score-label { font-size: 0.6rem; color: var(--text-muted); }
+
+  .saved-card-date {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .saved-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: auto;
+  }
+
+  .saved-card-actions a {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.4rem 0;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    text-decoration: none;
+    text-align: center;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .saved-card-actions a:hover { color: var(--text); border-color: var(--accent); }
+
+  .saved-card-actions button {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+    color: var(--red);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .saved-card-actions button:hover { background: #e05c5c11; }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--text-muted);
+  }
+
+  .empty-state p { font-size: 0.875rem; margin-bottom: 1rem; }
+  .empty-state a {
+    color: var(--accent);
+    text-decoration: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+  }
+
+  .saved-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  .saved-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+  }
+
+  .clear-all-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--red);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .clear-all-btn:hover { background: #e05c5c11; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <a href="/" class="header-logo">SpotiRate</a>
+  <nav class="header-nav">
+    <a href="/search" class="nav-link">Search</a>
+    <a href="/artist" class="nav-link">Artists</a>
+    <a href="/saved" class="nav-link active">Saved</a>
+  </nav>
+  <span id="token-status" style="display:none"></span>
+</header>
+
+<main>
+  <div class="saved-header">
+    <div class="panel-label" style="margin:0">Saved Ratings</div>
+    <button class="clear-all-btn" onclick="clearAll()">CLEAR ALL</button>
+  </div>
+  <div id="saved-grid"></div>
+</main>
+
+<script>
+function loadSaved() {
+  const grid = document.getElementById('saved-grid');
+  const raw = localStorage.getItem('spotirate_saved');
+  const saved = raw ? JSON.parse(raw) : [];
+
+  if (!saved.length) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <p>No saved ratings yet.</p>
+        <a href="/search">Rate an album →</a>
+      </div>
+    `;
+    return;
+  }
+
+  // Header count
+  document.querySelector('.saved-header .panel-label').textContent = `Saved Ratings`;
+  document.querySelector('.saved-count') && (document.querySelector('.saved-count').textContent = `${saved.length} rating${saved.length !== 1 ? 's' : ''}`);
+
+  grid.innerHTML = `<div class="saved-count">${saved.length} rating${saved.length !== 1 ? 's' : ''}</div>`;
+  const g = document.createElement('div');
+  g.className = 'saved-grid';
+
+  saved.slice().reverse().forEach((entry, revIdx) => {
+    const idx = saved.length - 1 - revIdx;
+    const card = document.createElement('div');
+    card.className = 'saved-card fade-in';
+    card.innerHTML = `
+      <div class="saved-card-header">
+        <img class="saved-card-img" src="${entry.img}" alt="">
+        <div class="saved-card-info">
+          <div class="saved-card-name">${entry.name}</div>
+          <div class="saved-card-artist">${entry.artist}</div>
+          <div class="saved-card-score">
+            <span class="saved-card-score-num">${entry.avg}</span>
+            <span class="saved-card-score-label">/ 10</span>
+          </div>
+        </div>
+      </div>
+      <div class="saved-card-date">${entry.date}</div>
+      <div class="saved-card-actions">
+        <a href="/search?album=${entry.albumId}">Rate again</a>
+        <button onclick="deleteSaved(${idx})" title="Delete">✕</button>
+      </div>
+    `;
+    g.appendChild(card);
+  });
+
+  grid.appendChild(g);
+}
+
+function deleteSaved(idx) {
+  const raw = localStorage.getItem('spotirate_saved');
+  const saved = raw ? JSON.parse(raw) : [];
+  saved.splice(idx, 1);
+  localStorage.setItem('spotirate_saved', JSON.stringify(saved));
+  loadSaved();
+}
+
+function clearAll() {
+  if (!confirm('Clear all saved ratings?')) return;
+  localStorage.removeItem('spotirate_saved');
+  loadSaved();
+}
+
+loadSaved();
+</script>
+</body>
+</html>

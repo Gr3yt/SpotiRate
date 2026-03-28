@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpotiRate — Artists</title>
+<link rel="icon" type="image/png" href="/images/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <a href="/" class="header-logo">SpotiRate</a>
+  <nav class="header-nav">
+    <a href="/search" class="nav-link">Search</a>
+    <a href="/artist" class="nav-link active">Artists</a>
+    <a href="/saved" class="nav-link">Saved</a>
+  </nav>
+  <span id="token-status">CONNECTING...</span>
+</header>
+
+<main>
+
+  <div id="artist-search-panel">
+    <div class="panel-label">Search Artist</div>
+    <div class="search-row">
+      <input type="text" id="artist-input" placeholder="Search for an artist..."
+        oninput="debounceArtistSearch()"
+        onkeydown="if(event.key==='Enter'){clearTimeout(artistDebounce);searchArtist();}">
+      <button onclick="searchArtist()" id="artist-search-btn">SEARCH</button>
+    </div>
+    <div id="artist-results"></div>
+    <div id="artist-status"></div>
+  </div>
+
+  <!-- ARTIST PROFILE -->
+  <div id="artist-panel" style="display:none">
+    <div class="artist-header fade-in" id="artist-header"></div>
+    <div class="panel-label" style="margin-top:1.5rem">Discography</div>
+    <div id="discography-list" class="discography-list"></div>
+  </div>
+
+</main>
+
+<script>
+// ── TOKEN (same as search page) ──
+let spotifyToken = null;
+let tokenExpiry = 0;
+
+async function getToken() {
+  if (spotifyToken && Date.now() < tokenExpiry) return spotifyToken;
+  try {
+    const res = await fetch('/.netlify/functions/spotify-token');
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    spotifyToken = data.access_token;
+    tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+    setStatus('CONNECTED', 'ok');
+    return spotifyToken;
+  } catch {
+    setStatus('NO TOKEN', 'err');
+    return null;
+  }
+}
+
+function setStatus(text, type) {
+  const el = document.getElementById('token-status');
+  el.textContent = text;
+  el.className = type || '';
+}
+
+function showArtistMsg(msg, color) {
+  const el = document.getElementById('artist-status');
+  el.innerHTML = msg;
+  el.style.color = color || 'var(--text-muted)';
+  el.style.display = 'block';
+}
+
+let artistDebounce = null;
+
+function debounceArtistSearch() {
+  const q = document.getElementById('artist-input').value.trim();
+  clearTimeout(artistDebounce);
+  if (!q || q.length < 2) return;
+  showArtistMsg('<span class="spinner"></span>Searching...', 'var(--text-muted)');
+  artistDebounce = setTimeout(() => searchArtist(), 400);
+}
+
+async function searchArtist() {
+  const query = document.getElementById('artist-input').value.trim();
+  if (!query) return;
+
+  const btn = document.getElementById('artist-search-btn');
+  btn.innerHTML = '<span class="spinner"></span>SEARCHING';
+  btn.disabled = true;
+
+  const token = await getToken();
+  if (!token) { btn.innerHTML = 'SEARCH'; btn.disabled = false; return; }
+
+  try {
+    const res = await fetch(
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=5`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await res.json();
+    renderArtistResults(data.artists?.items || []);
+  } catch {
+    showArtistMsg('⚠ Search failed.', 'var(--red)');
+  }
+
+  btn.innerHTML = 'SEARCH'; btn.disabled = false;
+}
+
+function renderArtistResults(items) {
+  const list = document.getElementById('artist-results');
+  list.innerHTML = '';
+  list.style.display = 'flex';
+  document.getElementById('artist-status').style.display = 'none';
+
+  if (!items.length) {
+    list.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:0.5rem">No artists found.</div>';
+    return;
+  }
+
+  items.forEach(artist => {
+    const img = artist.images?.[1]?.url || artist.images?.[0]?.url || '';
+    const div = document.createElement('div');
+    div.className = 'result-item fade-in';
+    div.innerHTML = `
+      <img src="${img || ''}" alt="" style="border-radius:50%">
+      <div class="result-info">
+        <div class="result-name">${artist.name}</div>
+        <div class="result-meta">${(artist.followers?.total || 0).toLocaleString()} followers</div>
+      </div>
+      <span class="result-type">ARTIST</span>
+    `;
+    div.onclick = () => loadArtist(artist.id, artist.name);
+    list.appendChild(div);
+  });
+}
+
+async function loadArtist(id, name) {
+  showArtistMsg('<span class="spinner"></span>Loading discography...', 'var(--text-muted)');
+  document.getElementById('artist-results').style.display = 'none';
+  document.getElementById('artist-panel').style.display = 'none';
+
+  const token = await getToken();
+  try {
+    const [artistRes, albumsRes] = await Promise.all([
+      fetch(`https://api.spotify.com/v1/artists/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`https://api.spotify.com/v1/artists/${id}/albums?include_groups=album,single,compilation&limit=50`, { headers: { Authorization: `Bearer ${token}` } })
+    ]);
+
+    const artist = await artistRes.json();
+    const albumData = await albumsRes.json();
+
+    renderArtistPage(artist, albumData.items || []);
+  } catch {
+    showArtistMsg('⚠ Failed to load artist.', 'var(--red)');
+  }
+}
+
+function renderArtistPage(artist, albums) {
+  document.getElementById('artist-status').style.display = 'none';
+
+  const img = artist.images?.[0]?.url || '';
+  const followers = (artist.followers?.total || 0).toLocaleString();
+  const genres = artist.genres?.slice(0, 3).join(', ') || '';
+
+  document.getElementById('artist-header').innerHTML = `
+    <img class="artist-cover" src="${img}" alt="">
+    <div class="album-meta">
+      <div class="type-tag">ARTIST</div>
+      <h2>${artist.name}</h2>
+      <p>${followers} followers${genres ? ' · ' + genres : ''}</p>
+    </div>
+  `;
+
+  // Group albums by type
+  const groups = { album: [], single: [], compilation: [] };
+  albums.forEach(a => { if (groups[a.album_group]) groups[a.album_group].push(a); });
+
+  const list = document.getElementById('discography-list');
+  list.innerHTML = '';
+
+  const labels = { album: 'Albums', single: 'Singles & EPs', compilation: 'Compilations' };
+
+  Object.entries(groups).forEach(([type, items]) => {
+    if (!items.length) return;
+
+    const heading = document.createElement('div');
+    heading.className = 'discography-heading';
+    heading.textContent = labels[type];
+    list.appendChild(heading);
+
+    const grid = document.createElement('div');
+    grid.className = 'discography-grid';
+
+    items.forEach(album => {
+      const img = album.images?.[1]?.url || album.images?.[0]?.url || '';
+      const card = document.createElement('div');
+      card.className = 'discography-item';
+      card.innerHTML = `
+        <img src="${img}" alt="">
+        <div class="discography-name">${album.name}</div>
+        <div class="discography-year">${album.release_date?.slice(0, 4)}</div>
+        <a href="/search?album=${album.id}" class="discography-rate-btn">Rate →</a>
+      `;
+      grid.appendChild(card);
+    });
+
+    list.appendChild(grid);
+  });
+
+  document.getElementById('artist-panel').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+getToken();
+</script>
+</body>
+</html>

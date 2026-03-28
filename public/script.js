@@ -124,16 +124,10 @@ async function loadAlbum(id) {
 }
 
 // ─── FAVOURITES ───────────────────────────────────────────────────────────────
-// Set of track indices marked as favourite
 let favourites = new Set();
 
 function toggleFavourite(i) {
-  if (favourites.has(i)) {
-    favourites.delete(i);
-  } else {
-    favourites.add(i);
-  }
-  // Update the star button appearance
+  favourites.has(i) ? favourites.delete(i) : favourites.add(i);
   const btn = document.querySelector(`.track-star-btn[data-index="${i}"]`);
   if (btn) {
     btn.classList.toggle('active', favourites.has(i));
@@ -190,16 +184,11 @@ function openTrackMenu(i, btn) {
   `;
 
   row.appendChild(menu);
-
-  setTimeout(() => {
-    document.addEventListener('click', outsideClickHandler);
-  }, 0);
+  setTimeout(() => document.addEventListener('click', outsideClickHandler), 0);
 }
 
 function outsideClickHandler(e) {
-  if (!e.target.closest('.track-menu') && !e.target.closest('.track-dots-btn')) {
-    closeAllMenus();
-  }
+  if (!e.target.closest('.track-menu') && !e.target.closest('.track-dots-btn')) closeAllMenus();
 }
 
 function closeAllMenus() {
@@ -224,15 +213,13 @@ function clearTrackTag(i) {
 function updateTrackRow(i) {
   const row = document.querySelector(`.track-row[data-index="${i}"]`);
   if (!row) return;
-
   const ratingGroup = row.querySelector('.rating-group');
   const existingTag = row.querySelector('.track-tag-label');
 
   if (trackTags[i]) {
     if (ratingGroup) ratingGroup.style.display = 'none';
-    if (existingTag) {
-      existingTag.textContent = trackTags[i];
-    } else {
+    if (existingTag) existingTag.textContent = trackTags[i];
+    else {
       const tagEl = document.createElement('span');
       tagEl.className = 'track-tag-label';
       tagEl.textContent = trackTags[i];
@@ -267,7 +254,6 @@ function renderRater(album) {
     </div>
   `;
 
-  // ── MULTI-DISC DETECTION ──
   const discNumbers = [...new Set(album.tracks.items.map(t => t.disc_number))];
   const isMultiDisc = discNumbers.length > 1;
   const discBanner = document.getElementById('disc-banner');
@@ -342,19 +328,11 @@ function getExtras() {
 let currentTheme = 'dark';
 
 const themeAccents = {
-  dark:     '#1DB954',
-  green:    '#1DB954',
-  midnight: '#9999ff',
-  warm:     '#e08030',
-  albumart: '#ffffff',
+  dark: '#1DB954', green: '#1DB954', midnight: '#9999ff', warm: '#e08030', albumart: '#ffffff',
 };
 
 const bgMap = {
-  dark:     '#0f0f0f',
-  green:    '#081a0f',
-  midnight: '#0a0a1a',
-  warm:     '#1a0f08',
-  albumart: '#000000',
+  dark: '#0f0f0f', green: '#081a0f', midnight: '#0a0a1a', warm: '#1a0f08', albumart: '#000000',
 };
 
 function setTheme(theme, btn) {
@@ -363,6 +341,38 @@ function setTheme(theme, btn) {
   btn.classList.add('active');
   const card = document.getElementById('export-card');
   if (card.innerHTML) generateCard();
+}
+
+// ─── ASPECT RATIO ────────────────────────────────────────────────────────────
+let currentRatio = 'standard';
+
+const ratioStyles = {
+  standard: { width: '560px',  minHeight: 'auto',  padding: '28px' },
+  square:   { width: '560px',  minHeight: '560px',  padding: '32px' },
+  wide:     { width: '760px',  minHeight: '428px',  padding: '32px 40px' },
+  tall:     { width: '380px',  minHeight: '675px',  padding: '32px 28px' },
+};
+
+function setRatio(ratio, btn) {
+  currentRatio = ratio;
+  document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const card = document.getElementById('export-card');
+  if (card.innerHTML) generateCard();
+}
+
+function applyRatio(card) {
+  const s = ratioStyles[currentRatio];
+  card.style.width    = s.width;
+  card.style.minHeight = s.minHeight;
+  card.style.padding  = s.padding;
+  if (currentRatio === 'square' || currentRatio === 'tall') {
+    card.style.display         = 'flex';
+    card.style.flexDirection   = 'column';
+    card.style.justifyContent  = 'space-between';
+  } else {
+    card.style.display = '';
+  }
 }
 
 // ─── CARD GENERATION ─────────────────────────────────────────────────────────
@@ -394,69 +404,45 @@ function generateCard() {
 
   let lastDisc = null;
   const trackRows = tracks.map((t, i) => {
-    const tag     = trackTags[i] || null;
-    const isFav   = favourites.has(i);
+    const tag   = trackTags[i] || null;
+    const isFav = favourites.has(i);
 
     const duration = extras.trackLength && t.duration_ms
-      ? `<span class="ct-duration">${formatMs(t.duration_ms)}</span>`
-      : '';
+      ? `<span class="ct-duration">${formatMs(t.duration_ms)}</span>` : '';
 
     const pop = !tag && extras.popularity && t.popularity != null
-      ? `<span class="ct-pop">●${t.popularity}</span>`
-      : '';
+      ? `<span class="ct-pop">●${t.popularity}</span>` : '';
 
-    // Star shown on card if favourited
     const favStar = isFav ? `<span class="ct-fav">★</span>` : '';
 
     const ratingHtml = tag
       ? `<span class="ct-tag">${tag}</span>`
       : (() => {
-          const r     = ratings[i];
-          const barW  = (r / 10) * 100;
+          const r = ratings[i];
+          const barW = (r / 10) * 100;
           const color = r <= 3 ? '#e05c5c' : r <= 6 ? '#e0b95c' : accent;
-          return `
-            <div class="ct-bar-wrap"><div class="ct-bar" style="width:${barW}%;background:${color}"></div></div>
-            <span class="ct-score" style="color:${color}">${r}</span>
-          `;
+          return `<div class="ct-bar-wrap"><div class="ct-bar" style="width:${barW}%;background:${color}"></div></div><span class="ct-score" style="color:${color}">${r}</span>`;
         })();
 
     let discDivider = '';
     if (isMultiDisc && extras.showDiscs && t.disc_number !== lastDisc) {
-      discDivider = `
-        <div class="card-disc-divider">
-          <span class="card-disc-label">Disc ${t.disc_number}</span>
-          <div class="card-disc-line"></div>
-        </div>
-      `;
+      discDivider = `<div class="card-disc-divider"><span class="card-disc-label">Disc ${t.disc_number}</span><div class="card-disc-line"></div></div>`;
       lastDisc = t.disc_number;
     }
 
-    return `
-      ${discDivider}
-      <div class="card-track${isFav ? ' card-track--fav' : ''}">
-        ${favStar}
-        <span class="ct-num">${i + 1}</span>
-        <span class="ct-name">${t.name}</span>
-        ${duration}
-        ${pop}
-        ${ratingHtml}
-      </div>
-    `;
+    return `${discDivider}<div class="card-track${isFav ? ' card-track--fav' : ''}">${favStar}<span class="ct-num">${i + 1}</span><span class="ct-name">${t.name}</span>${duration}${pop}${ratingHtml}</div>`;
   }).join('');
 
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-  const reviewHtml = extras.review
-    ? `<div class="card-review">"${extras.review}"</div>`
-    : '';
-
-  const nameHtml = extras.name
-    ? `<span class="card-footer-name">rated by ${extras.name}</span>`
-    : '';
+  const reviewHtml = extras.review ? `<div class="card-review">"${extras.review}"</div>` : '';
+  const nameHtml   = extras.name   ? `<span class="card-footer-name">rated by ${extras.name}</span>` : '';
 
   const card = document.getElementById('export-card');
   card.style.setProperty('--album-art', `url('${img}')`);
   card.className = `theme-${currentTheme}`;
+  applyRatio(card);
+
   card.innerHTML = `
     <div class="card-header">
       <img class="card-cover" src="${img}" alt="" crossorigin="anonymous">
@@ -484,30 +470,105 @@ function generateCard() {
   document.getElementById('card-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// ─── RENDER CARD TO CANVAS ───────────────────────────────────────────────────
+async function renderCanvas() {
+  const bg = bgMap[currentTheme] || '#0f0f0f';
+  return html2canvas(document.getElementById('export-card'), {
+    backgroundColor: bg,
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  });
+}
+
 // ─── DOWNLOAD ────────────────────────────────────────────────────────────────
 async function downloadCard(e) {
   const btn = e.target;
   btn.innerHTML = '<span class="spinner"></span>RENDERING';
   btn.disabled = true;
-
-  const bg = bgMap[currentTheme] || '#0f0f0f';
-
   try {
-    const canvas = await html2canvas(document.getElementById('export-card'), {
-      backgroundColor: bg,
-      scale: 2,
-      useCORS: true,
-      logging: false,
-    });
+    const canvas = await renderCanvas();
     const link = document.createElement('a');
     link.download = `${currentAlbum?.name || 'album'}-spotirate.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
-  } catch (err) {
+  } catch {
     alert('Download failed — try screenshotting the card instead.');
   }
+  btn.innerHTML = 'DOWNLOAD'; btn.disabled = false;
+}
 
-  btn.innerHTML = 'DOWNLOAD IMAGE'; btn.disabled = false;
+// ─── COPY TO CLIPBOARD ───────────────────────────────────────────────────────
+async function copyCard(e) {
+  const btn = e.target;
+  btn.innerHTML = '<span class="spinner"></span>COPYING';
+  btn.disabled = true;
+  try {
+    const canvas = await renderCanvas();
+    canvas.toBlob(async blob => {
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ]);
+      showToast('copy-toast');
+    });
+  } catch {
+    alert('Copy failed — your browser may not support this. Try downloading instead.');
+  }
+  btn.innerHTML = 'COPY IMAGE'; btn.disabled = false;
+}
+
+function showToast(id) {
+  const toast = document.getElementById(id);
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 2200);
+}
+
+// ─── SAVE RATING LOCALLY ─────────────────────────────────────────────────────
+function saveRating() {
+  if (!currentAlbum) return;
+
+  const inputs  = document.querySelectorAll('.rating-input');
+  const ratings = Array.from(inputs).map(i => parseInt(i.value));
+  const ratedValues = ratings.filter((_, i) => !trackTags[i]);
+  const avg = ratedValues.length
+    ? (ratedValues.reduce((a, b) => a + b, 0) / ratedValues.length).toFixed(1)
+    : '—';
+
+  const entry = {
+    albumId: currentAlbum.id,
+    name:    currentAlbum.name,
+    artist:  currentAlbum.artists.map(a => a.name).join(', '),
+    img:     currentAlbum.images?.[1]?.url || currentAlbum.images?.[0]?.url || '',
+    avg,
+    ratings,
+    trackTags: { ...trackTags },
+    favourites: [...favourites],
+    date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    savedAt: Date.now(),
+  };
+
+  const raw = localStorage.getItem('spotirate_saved');
+  const saved = raw ? JSON.parse(raw) : [];
+
+  // Replace if same album already saved
+  const existing = saved.findIndex(s => s.albumId === entry.albumId);
+  if (existing >= 0) saved[existing] = entry;
+  else saved.push(entry);
+
+  localStorage.setItem('spotirate_saved', JSON.stringify(saved));
+  showToast('save-toast');
+}
+
+// ─── AUTO-LOAD FROM URL PARAM ─────────────────────────────────────────────────
+// Supports /search?album=ALBUM_ID (linked from artist page)
+async function checkUrlParam() {
+  const params = new URLSearchParams(window.location.search);
+  const albumId = params.get('album');
+  if (albumId) {
+    await getToken();
+    showMsg('<span class="spinner"></span>Loading...', 'var(--text-muted)');
+    loadAlbum(albumId);
+  }
 }
 
 // ─── RESET ───────────────────────────────────────────────────────────────────
@@ -527,4 +588,4 @@ function resetAll() {
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-getToken();
+getToken().then(checkUrlParam);

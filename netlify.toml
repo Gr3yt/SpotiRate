@@ -8,6 +8,16 @@
 [build.processing.html]
   pretty_urls = true
 
+[[redirects]]
+  from = "/artist"
+  to = "/artist.html"
+  status = 200
+
+[[redirects]]
+  from = "/saved"
+  to = "/saved.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

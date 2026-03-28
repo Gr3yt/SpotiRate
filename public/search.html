@@ -14,7 +14,12 @@
 
 <header>
   <div class="logo-dot"></div>
-  <h1>SpotiRate</h1>
+  <a href="/" class="header-logo">SpotiRate</a>
+  <nav class="header-nav">
+    <a href="/search" class="nav-link active">Search</a>
+    <a href="/artist" class="nav-link">Artists</a>
+    <a href="/saved" class="nav-link">Saved</a>
+  </nav>
   <span id="token-status">CONNECTING...</span>
 </header>
 
@@ -38,7 +43,7 @@
 
     <div class="album-header fade-in" id="album-header"></div>
 
-    <!-- MULTI-DISC BANNER — only shown if album has multiple discs -->
+    <!-- MULTI-DISC BANNER -->
     <div id="disc-banner" class="disc-banner" style="display:none">
       <div class="disc-banner-left">
         <span class="disc-icon">💿</span>
@@ -61,7 +66,6 @@
       </button>
       <div class="extras-body" id="extras-body">
 
-        <!-- NAME -->
         <div class="extra-row">
           <div class="extra-label">
             <span>Your Name</span>
@@ -70,7 +74,6 @@
           <input type="text" id="extra-name" class="extra-input" placeholder="e.g. gr3yt" maxlength="30">
         </div>
 
-        <!-- REVIEW -->
         <div class="extra-row extra-row--textarea">
           <div class="extra-label">
             <span>Written Review</span>
@@ -82,7 +85,6 @@
           </div>
         </div>
 
-        <!-- TRACK LENGTH -->
         <div class="extra-row extra-row--toggle">
           <div class="extra-label">
             <span>Show Track Length</span>
@@ -94,7 +96,6 @@
           </label>
         </div>
 
-        <!-- POPULARITY -->
         <div class="extra-row extra-row--toggle">
           <div class="extra-label">
             <span>Show Popularity Score</span>
@@ -133,12 +134,26 @@
       <button class="theme-btn"        data-theme="albumart" onclick="setTheme('albumart', this)">ALBUM ART</button>
     </div>
 
-    <div id="export-card"></div>
+    <!-- ASPECT RATIO PICKER -->
+    <div class="ratio-picker">
+      <button class="ratio-btn active" data-ratio="standard" onclick="setRatio('standard', this)" title="Standard">▭ Standard</button>
+      <button class="ratio-btn" data-ratio="square"   onclick="setRatio('square', this)"   title="Square 1:1">⬜ Square</button>
+      <button class="ratio-btn" data-ratio="wide"     onclick="setRatio('wide', this)"     title="Wide 16:9">▬ Wide</button>
+      <button class="ratio-btn" data-ratio="tall"     onclick="setRatio('tall', this)"     title="Story 9:16">▮ Story</button>
+    </div>
+
+    <div id="export-card-wrap">
+      <div id="export-card"></div>
+    </div>
 
     <div class="card-actions">
-      <button onclick="downloadCard(event)">DOWNLOAD IMAGE</button>
+      <button onclick="downloadCard(event)">DOWNLOAD</button>
+      <button class="secondary" onclick="copyCard(event)">COPY IMAGE</button>
+      <button class="secondary" onclick="saveRating()">SAVE RATING</button>
       <button class="secondary" onclick="document.getElementById('card-wrapper').style.display='none'">HIDE</button>
     </div>
+    <div id="copy-toast" class="copy-toast">Copied to clipboard!</div>
+    <div id="save-toast" class="copy-toast">Rating saved!</div>
   </div>
 
 </main>

@@ -886,3 +886,223 @@ button.secondary {
 .theme-midnight .ct-fav,
 .theme-warm .ct-fav,
 .theme-albumart .ct-fav { color: #f5c842; text-shadow: 0 0 6px #f5c84255; }
+
+/* ── HEADER NAV ── */
+.header-logo {
+  font-family: 'Space Mono', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 1.5rem;
+}
+
+.nav-link {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.nav-link:hover { color: var(--text); background: var(--surface2); }
+.nav-link.active { color: var(--accent); background: var(--accent-dim); }
+
+/* ── RATIO PICKER ── */
+.ratio-picker {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.ratio-btn {
+  background: var(--surface2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ratio-btn:hover { border-color: var(--accent); color: var(--text); opacity: 1; }
+.ratio-btn.active { background: var(--surface3); color: var(--text); border-color: #444; }
+
+/* ── COPY / SAVE TOAST ── */
+.copy-toast {
+  display: inline-block;
+  margin-top: 0.6rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+
+.copy-toast.visible { opacity: 1; transform: translateY(0); }
+
+/* ── STAR FAVOURITE BUTTON ── */
+.track-star-btn {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%) scale(0.7);
+  opacity: 0;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.25rem 0.3rem;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s, color 0.15s;
+  z-index: 10;
+}
+
+.track-row:hover .track-star-btn { opacity: 1; transform: translateY(-50%) scale(1); }
+
+.track-star-btn.active {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  color: #f5c842;
+  text-shadow: 0 0 8px #f5c84266;
+  content: '★';
+}
+
+.track-row:hover .track-num,
+.track-row:has(.track-star-btn.active) .track-num { padding-left: 20px; transition: padding-left 0.15s; }
+
+/* ── STAR ON CARD ── */
+.ct-fav {
+  color: #f5c842;
+  font-size: 0.65rem;
+  flex-shrink: 0;
+  text-shadow: 0 0 6px #f5c84255;
+  margin-right: -2px;
+}
+
+.card-track--fav .ct-name { font-weight: 600; }
+
+.theme-dark .ct-fav,
+.theme-green .ct-fav,
+.theme-midnight .ct-fav,
+.theme-warm .ct-fav,
+.theme-albumart .ct-fav { color: #f5c842; }
+
+/* ── ARTIST PAGE ── */
+.artist-cover {
+  width: 110px; height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.discography-heading {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 1.5rem 0 0.75rem;
+}
+
+.discography-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.discography-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: border-color 0.2s;
+}
+
+.discography-item:hover { border-color: var(--accent); }
+
+.discography-item img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  object-fit: cover;
+  margin-bottom: 0.2rem;
+}
+
+.discography-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.discography-year { font-size: 0.7rem; color: var(--text-muted); }
+
+.discography-rate-btn {
+  display: block;
+  margin-top: auto;
+  padding: 0.35rem 0;
+  background: var(--accent-dim);
+  border: 1px solid #1DB95433;
+  border-radius: 5px;
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.discography-rate-btn:hover { background: #1DB95433; }
+
+/* ── ARTIST RESULTS LIST ── */
+#artist-results {
+  display: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+#artist-status {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 0.75rem;
+  text-align: center;
+  display: none;
+}
+
+#artist-search-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
