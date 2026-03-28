@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="stylesheet" href="style.css">
+<script src="https://kit.fontawesome.com/2125d679c7.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -136,10 +137,10 @@
 
     <!-- ASPECT RATIO PICKER -->
     <div class="ratio-picker">
-      <button class="ratio-btn active" data-ratio="standard" onclick="setRatio('standard', this)" title="Standard">▭ Standard</button>
-      <button class="ratio-btn" data-ratio="square"   onclick="setRatio('square', this)"   title="Square 1:1">⬜ Square</button>
-      <button class="ratio-btn" data-ratio="wide"     onclick="setRatio('wide', this)"     title="Wide 16:9">▬ Wide</button>
-      <button class="ratio-btn" data-ratio="tall"     onclick="setRatio('tall', this)"     title="Story 9:16">▮ Story</button>
+      <button class="ratio-btn active" data-ratio="standard" onclick="setRatio('standard', this)" title="Standard">Default</button>
+      <button class="ratio-btn" data-ratio="square"   onclick="setRatio('square', this)"   title="Square 1:1"><i class="fa-brands fa-instagram"></i> Square</button>
+      <button class="ratio-btn" data-ratio="wide"     onclick="setRatio('wide', this)"     title="Wide 16:9"><i class="fa-brands fa-twitter"></i> Wide</button>
+      <button class="ratio-btn" data-ratio="tall"     onclick="setRatio('tall', this)"     title="Story 9:16"><i class="fa-solid fa-mobile"></i> Story</button>
     </div>
 
     <div id="export-card-wrap">
