@@ -811,3 +811,78 @@ button.secondary {
   .track-row:hover .rating-group { transform: none; }
   .track-dots-btn { opacity: 1; transform: translateY(-50%) scale(1); position: static; margin-left: auto; }
 }
+
+/* ── STAR FAVOURITE BUTTON (track row) ── */
+.track-star-btn {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%) scale(0.7);
+  opacity: 0;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.25rem 0.3rem;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s, color 0.15s;
+  z-index: 10;
+}
+
+/* Show on hover */
+.track-row:hover .track-star-btn {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+/* Always show if already favourited */
+.track-star-btn.active {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  color: #f5c842;
+  text-shadow: 0 0 8px #f5c84266;
+}
+
+.track-star-btn.active::before {
+  content: '★';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f5c842;
+}
+
+/* Push track number right to make room for star */
+.track-row:hover .track-num,
+.track-row:has(.track-star-btn.active) .track-num {
+  padding-left: 20px;
+  transition: padding-left 0.15s;
+}
+
+/* ── STAR ON EXPORT CARD ── */
+.ct-fav {
+  color: #f5c842;
+  font-size: 0.65rem;
+  flex-shrink: 0;
+  text-shadow: 0 0 6px #f5c84255;
+  margin-right: -2px;
+}
+
+/* Subtle highlight on favourited card tracks */
+.card-track--fav {
+  position: relative;
+}
+
+.card-track--fav .ct-name {
+  font-weight: 600;
+}
+
+/* Theme overrides for the star — it's yellow on all themes */
+.theme-dark .ct-fav,
+.theme-green .ct-fav,
+.theme-midnight .ct-fav,
+.theme-warm .ct-fav,
+.theme-albumart .ct-fav { color: #f5c842; text-shadow: 0 0 6px #f5c84255; }

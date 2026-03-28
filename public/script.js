@@ -123,11 +123,27 @@ async function loadAlbum(id) {
   }
 }
 
-// ─── TRACK TAGS ──────────────────────────────────────────────────────────────
-// Stores tag overrides per track index. null = use normal rating.
+// ─── FAVOURITES ───────────────────────────────────────────────────────────────
+// Set of track indices marked as favourite
+let favourites = new Set();
+
+function toggleFavourite(i) {
+  if (favourites.has(i)) {
+    favourites.delete(i);
+  } else {
+    favourites.add(i);
+  }
+  // Update the star button appearance
+  const btn = document.querySelector(`.track-star-btn[data-index="${i}"]`);
+  if (btn) {
+    btn.classList.toggle('active', favourites.has(i));
+    btn.title = favourites.has(i) ? 'Remove favourite' : 'Mark as favourite';
+  }
+}
+
+// ─── TRACK TAGS ───────────────────────────────────────────────────────────────
 let trackTags = {};
 
-// Preset tags — add more here whenever you want
 const PRESET_TAGS = [
   { label: 'Intro',        icon: '▶' },
   { label: 'Outro',        icon: '■' },
@@ -136,12 +152,10 @@ const PRESET_TAGS = [
   { label: 'Skit',         icon: '💬' },
 ];
 
-let openMenuIndex = null; // which track menu is currently open
+let openMenuIndex = null;
 
 function openTrackMenu(i, btn) {
-  // Close any open menu first
   closeAllMenus();
-
   openMenuIndex = i;
   const row = btn.closest('.track-row');
   const currentTag = trackTags[i] || null;
@@ -177,7 +191,6 @@ function openTrackMenu(i, btn) {
 
   row.appendChild(menu);
 
-  // Close menu when clicking outside
   setTimeout(() => {
     document.addEventListener('click', outsideClickHandler);
   }, 0);
@@ -216,7 +229,6 @@ function updateTrackRow(i) {
   const existingTag = row.querySelector('.track-tag-label');
 
   if (trackTags[i]) {
-    // Show tag label, hide slider
     if (ratingGroup) ratingGroup.style.display = 'none';
     if (existingTag) {
       existingTag.textContent = trackTags[i];
@@ -227,7 +239,6 @@ function updateTrackRow(i) {
       row.insertBefore(tagEl, row.querySelector('.track-dots-btn'));
     }
   } else {
-    // Show slider, remove tag label
     if (ratingGroup) ratingGroup.style.display = 'flex';
     if (existingTag) existingTag.remove();
   }
@@ -239,7 +250,8 @@ function renderRater(album) {
   document.getElementById('setup-panel').style.display = 'none';
   document.getElementById('card-wrapper').style.display = 'none';
 
-  trackTags = {}; // reset tags for new album
+  trackTags = {};
+  favourites = new Set();
 
   const img    = album.images?.[0]?.url || '';
   const artist = album.artists.map(a => a.name).join(', ');
@@ -272,6 +284,7 @@ function renderRater(album) {
     row.className = 'track-row';
     row.dataset.index = i;
     row.innerHTML = `
+      <button class="track-star-btn" data-index="${i}" onclick="toggleFavourite(${i})" title="Mark as favourite">☆</button>
       <span class="track-num">${i + 1}</span>
       <span class="track-name">${track.name}</span>
       <div class="rating-group">
@@ -313,7 +326,6 @@ function resetExtras() {
   };
   document.getElementById('extra-track-length').checked = false;
   document.getElementById('extra-popularity').checked = false;
-  // ── RESET NEW EXTRAS HERE ──
 }
 
 function getExtras() {
@@ -323,7 +335,6 @@ function getExtras() {
     trackLength: document.getElementById('extra-track-length').checked,
     popularity:  document.getElementById('extra-popularity').checked,
     showDiscs:   document.getElementById('show-discs').checked,
-    // ── ADD NEW EXTRAS HERE ──
   };
 }
 
@@ -366,7 +377,6 @@ function generateCard() {
   const accent  = themeAccents[currentTheme];
   const extras  = getExtras();
 
-  // Overall average only counts tracks that have a numeric rating (not tagged)
   const ratedValues = ratings.filter((_, i) => !trackTags[i]);
   const avg = ratedValues.length
     ? (ratedValues.reduce((a, b) => a + b, 0) / ratedValues.length).toFixed(1)
@@ -384,7 +394,8 @@ function generateCard() {
 
   let lastDisc = null;
   const trackRows = tracks.map((t, i) => {
-    const tag = trackTags[i] || null;
+    const tag     = trackTags[i] || null;
+    const isFav   = favourites.has(i);
 
     const duration = extras.trackLength && t.duration_ms
       ? `<span class="ct-duration">${formatMs(t.duration_ms)}</span>`
@@ -394,7 +405,9 @@ function generateCard() {
       ? `<span class="ct-pop">●${t.popularity}</span>`
       : '';
 
-    // If tagged: show tag pill instead of bar + score
+    // Star shown on card if favourited
+    const favStar = isFav ? `<span class="ct-fav">★</span>` : '';
+
     const ratingHtml = tag
       ? `<span class="ct-tag">${tag}</span>`
       : (() => {
@@ -420,7 +433,8 @@ function generateCard() {
 
     return `
       ${discDivider}
-      <div class="card-track">
+      <div class="card-track${isFav ? ' card-track--fav' : ''}">
+        ${favStar}
         <span class="ct-num">${i + 1}</span>
         <span class="ct-name">${t.name}</span>
         ${duration}
@@ -508,6 +522,7 @@ function resetAll() {
   document.getElementById('disc-banner').style.display = 'none';
   closeAllMenus();
   trackTags = {};
+  favourites = new Set();
   currentAlbum = null;
 }
 
