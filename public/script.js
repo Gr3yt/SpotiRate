@@ -1,4 +1,4 @@
-// ─── TOKEN MANAGEMENT ────────────────────────────────────────────────────────
+// ─── TOKEN MANAGEMENT (SPOTIFY) ──────────────────────────────────────────────
 let spotifyToken = null;
 let tokenExpiry = 0;
 
@@ -20,8 +20,34 @@ async function getToken() {
 
 function setStatus(text, type) {
   const el = document.getElementById('token-status');
+  if (!el) return;
   el.textContent = text;
   el.className = type || '';
+}
+
+// ─── RECENT RATINGS ──────────────────────────────────────────────────────────
+function loadRecentRatings() {
+  const raw = localStorage.getItem('spotirate_saved');
+  const saved = raw ? JSON.parse(raw) : [];
+  const section = document.getElementById('recent-section');
+  const list = document.getElementById('recent-list');
+  if (!section || !list) return;
+
+  if (!saved.length) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  const recent = saved.slice(-6).reverse();
+
+  list.innerHTML = recent.map(entry => `
+    <div class="recent-item" onclick="loadAlbum('${entry.albumId}')">
+      <img src="${entry.img}" alt="">
+      <div class="recent-info">
+        <div class="recent-name">${entry.name}</div>
+        <div class="recent-artist">${entry.artist}</div>
+      </div>
+      <div class="recent-score">${entry.avg}</div>
+    </div>
+  `).join('');
 }
 
 // ─── LIVE SEARCH (DEBOUNCED) ──────────────────────────────────────────────────
@@ -59,7 +85,7 @@ async function searchAlbum() {
 
   const token = await getToken();
   if (!token) {
-    showMsg('⚠ Could not connect to Spotify. Check your Netlify env vars.', 'var(--red)');
+    showMsg('⚠ Could not connect to Spotify.', 'var(--red)');
     btn.innerHTML = 'SEARCH'; btn.disabled = false;
     return;
   }
@@ -129,10 +155,7 @@ let favourites = new Set();
 function toggleFavourite(i) {
   favourites.has(i) ? favourites.delete(i) : favourites.add(i);
   const btn = document.querySelector(`.track-star-btn[data-index="${i}"]`);
-  if (btn) {
-    btn.classList.toggle('active', favourites.has(i));
-    btn.title = favourites.has(i) ? 'Remove favourite' : 'Mark as favourite';
-  }
+  if (btn) btn.classList.toggle('active', favourites.has(i));
 }
 
 // ─── TRACK TAGS ───────────────────────────────────────────────────────────────
@@ -153,21 +176,17 @@ function openTrackMenu(i, btn) {
   openMenuIndex = i;
   const row = btn.closest('.track-row');
   const currentTag = trackTags[i] || null;
-
   const menu = document.createElement('div');
   menu.className = 'track-menu';
   menu.id = `track-menu-${i}`;
 
-  const presetItems = PRESET_TAGS.map(tag => `
-    <div class="track-menu-item ${currentTag === tag.label ? 'active' : ''}"
-         onclick="setTrackTag(${i}, '${tag.label}')">
-      <span class="track-menu-icon">${tag.icon}</span>
-      ${tag.label}
-    </div>
-  `).join('');
-
   menu.innerHTML = `
-    ${presetItems}
+    ${PRESET_TAGS.map(tag => `
+      <div class="track-menu-item ${currentTag === tag.label ? 'active' : ''}"
+           onclick="setTrackTag(${i}, '${tag.label}')">
+        <span class="track-menu-icon">${tag.icon}</span>${tag.label}
+      </div>
+    `).join('')}
     <div class="track-menu-divider"></div>
     <div class="track-menu-custom">
       <input type="text" id="custom-tag-${i}" placeholder="Custom label..." maxlength="20"
@@ -177,8 +196,7 @@ function openTrackMenu(i, btn) {
     ${currentTag ? `
       <div class="track-menu-divider"></div>
       <div class="track-menu-item danger" onclick="clearTrackTag(${i})">
-        <span class="track-menu-icon">✕</span>
-        Clear — use rating
+        <span class="track-menu-icon">✕</span>Clear — use rating
       </div>
     ` : ''}
   `;
@@ -215,7 +233,6 @@ function updateTrackRow(i) {
   if (!row) return;
   const ratingGroup = row.querySelector('.rating-group');
   const existingTag = row.querySelector('.track-tag-label');
-
   if (trackTags[i]) {
     if (ratingGroup) ratingGroup.style.display = 'none';
     if (existingTag) existingTag.textContent = trackTags[i];
@@ -295,7 +312,7 @@ function updateRating(input) {
   label.style.color = val <= 3 ? 'var(--red)' : val <= 6 ? 'var(--yellow)' : 'var(--accent)';
 }
 
-// ─── EXTRAS PANEL ────────────────────────────────────────────────────────────
+// ─── EXTRAS ──────────────────────────────────────────────────────────────────
 function toggleExtras(btn) {
   btn.classList.toggle('open');
   document.getElementById('extras-body').classList.toggle('open');
@@ -307,9 +324,7 @@ function resetExtras() {
   const reviewCount = document.getElementById('review-count');
   reviewInput.value = '';
   reviewCount.textContent = '0 / 300';
-  reviewInput.oninput = () => {
-    reviewCount.textContent = `${reviewInput.value.length} / 300`;
-  };
+  reviewInput.oninput = () => { reviewCount.textContent = `${reviewInput.value.length} / 300`; };
   document.getElementById('extra-track-length').checked = false;
   document.getElementById('extra-popularity').checked = false;
 }
@@ -324,15 +339,18 @@ function getExtras() {
   };
 }
 
-// ─── CARD THEMES ─────────────────────────────────────────────────────────────
+// ─── THEMES & RATIO ──────────────────────────────────────────────────────────
 let currentTheme = 'dark';
+let currentRatio = 'standard';
 
-const themeAccents = {
-  dark: '#1DB954', green: '#1DB954', midnight: '#9999ff', warm: '#e08030', albumart: '#ffffff',
-};
+const themeAccents = { dark:'#1DB954', green:'#1DB954', midnight:'#9999ff', warm:'#e08030', albumart:'#ffffff' };
+const bgMap = { dark:'#0f0f0f', green:'#081a0f', midnight:'#0a0a1a', warm:'#1a0f08', albumart:'#000000' };
 
-const bgMap = {
-  dark: '#0f0f0f', green: '#081a0f', midnight: '#0a0a1a', warm: '#1a0f08', albumart: '#000000',
+const ratioStyles = {
+  standard: { width:'560px', minHeight:'auto',  padding:'28px' },
+  square:   { width:'560px', minHeight:'560px', padding:'32px' },
+  wide:     { width:'760px', minHeight:'428px', padding:'32px 40px' },
+  tall:     { width:'380px', minHeight:'675px', padding:'32px 28px' },
 };
 
 function setTheme(theme, btn) {
@@ -342,16 +360,6 @@ function setTheme(theme, btn) {
   const card = document.getElementById('export-card');
   if (card.innerHTML) generateCard();
 }
-
-// ─── ASPECT RATIO ────────────────────────────────────────────────────────────
-let currentRatio = 'standard';
-
-const ratioStyles = {
-  standard: { width: '560px',  minHeight: 'auto',  padding: '28px' },
-  square:   { width: '560px',  minHeight: '560px',  padding: '32px' },
-  wide:     { width: '760px',  minHeight: '428px',  padding: '32px 40px' },
-  tall:     { width: '380px',  minHeight: '675px',  padding: '32px 28px' },
-};
 
 function setRatio(ratio, btn) {
   currentRatio = ratio;
@@ -363,16 +371,12 @@ function setRatio(ratio, btn) {
 
 function applyRatio(card) {
   const s = ratioStyles[currentRatio];
-  card.style.width    = s.width;
+  card.style.width = s.width;
   card.style.minHeight = s.minHeight;
-  card.style.padding  = s.padding;
-  if (currentRatio === 'square' || currentRatio === 'tall') {
-    card.style.display         = 'flex';
-    card.style.flexDirection   = 'column';
-    card.style.justifyContent  = 'space-between';
-  } else {
-    card.style.display = '';
-  }
+  card.style.padding = s.padding;
+  card.style.display = (currentRatio === 'square' || currentRatio === 'tall') ? 'flex' : '';
+  card.style.flexDirection = 'column';
+  card.style.justifyContent = 'space-between';
 }
 
 // ─── CARD GENERATION ─────────────────────────────────────────────────────────
@@ -389,8 +393,7 @@ function generateCard() {
 
   const ratedValues = ratings.filter((_, i) => !trackTags[i]);
   const avg = ratedValues.length
-    ? (ratedValues.reduce((a, b) => a + b, 0) / ratedValues.length).toFixed(1)
-    : '—';
+    ? (ratedValues.reduce((a, b) => a + b, 0) / ratedValues.length).toFixed(1) : '—';
 
   const discNumbers = [...new Set(tracks.map(t => t.disc_number))];
   const isMultiDisc = discNumbers.length > 1;
@@ -406,13 +409,8 @@ function generateCard() {
   const trackRows = tracks.map((t, i) => {
     const tag   = trackTags[i] || null;
     const isFav = favourites.has(i);
-
-    const duration = extras.trackLength && t.duration_ms
-      ? `<span class="ct-duration">${formatMs(t.duration_ms)}</span>` : '';
-
-    const pop = !tag && extras.popularity && t.popularity != null
-      ? `<span class="ct-pop">●${t.popularity}</span>` : '';
-
+    const duration = extras.trackLength && t.duration_ms ? `<span class="ct-duration">${formatMs(t.duration_ms)}</span>` : '';
+    const pop = !tag && extras.popularity && t.popularity != null ? `<span class="ct-pop">●${t.popularity}</span>` : '';
     const favStar = isFav ? `<span class="ct-fav">★</span>` : '';
 
     const ratingHtml = tag
@@ -430,11 +428,10 @@ function generateCard() {
       lastDisc = t.disc_number;
     }
 
-    return `${discDivider}<div class="card-track${isFav ? ' card-track--fav' : ''}">${favStar}<span class="ct-num">${i + 1}</span><span class="ct-name">${t.name}</span>${duration}${pop}${ratingHtml}</div>`;
+    return `${discDivider}<div class="card-track${isFav?' card-track--fav':''}">${favStar}<span class="ct-num">${i+1}</span><span class="ct-name">${t.name}</span>${duration}${pop}${ratingHtml}</div>`;
   }).join('');
 
-  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-
+  const today = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
   const reviewHtml = extras.review ? `<div class="card-review">"${extras.review}"</div>` : '';
   const nameHtml   = extras.name   ? `<span class="card-footer-name">rated by ${extras.name}</span>` : '';
 
@@ -467,17 +464,14 @@ function generateCard() {
   `;
 
   document.getElementById('card-wrapper').style.display = 'block';
-  document.getElementById('card-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('card-wrapper').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-// ─── RENDER CARD TO CANVAS ───────────────────────────────────────────────────
+// ─── CANVAS RENDER ───────────────────────────────────────────────────────────
 async function renderCanvas() {
-  const bg = bgMap[currentTheme] || '#0f0f0f';
   return html2canvas(document.getElementById('export-card'), {
-    backgroundColor: bg,
-    scale: 2,
-    useCORS: true,
-    logging: false,
+    backgroundColor: bgMap[currentTheme] || '#0f0f0f',
+    scale: 2, useCORS: true, logging: false,
   });
 }
 
@@ -492,9 +486,7 @@ async function downloadCard(e) {
     link.download = `${currentAlbum?.name || 'album'}-spotirate.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
-  } catch {
-    alert('Download failed — try screenshotting the card instead.');
-  }
+  } catch { alert('Download failed — try screenshotting instead.'); }
   btn.innerHTML = 'DOWNLOAD'; btn.disabled = false;
 }
 
@@ -506,61 +498,84 @@ async function copyCard(e) {
   try {
     const canvas = await renderCanvas();
     canvas.toBlob(async blob => {
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blob })
-      ]);
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
       showToast('copy-toast');
     });
-  } catch {
-    alert('Copy failed — your browser may not support this. Try downloading instead.');
-  }
+  } catch { alert('Copy failed — try downloading instead.'); }
   btn.innerHTML = 'COPY IMAGE'; btn.disabled = false;
 }
 
 function showToast(id) {
-  const toast = document.getElementById(id);
-  toast.classList.add('visible');
-  setTimeout(() => toast.classList.remove('visible'), 2200);
+  const el = document.getElementById(id);
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 2200);
 }
 
-// ─── SAVE RATING LOCALLY ─────────────────────────────────────────────────────
-function saveRating() {
+// ─── SAVE RATING ─────────────────────────────────────────────────────────────
+async function saveRating(e) {
   if (!currentAlbum) return;
+  const btn = e?.target;
+  if (btn) { btn.innerHTML = '<span class="spinner"></span>SAVING'; btn.disabled = true; }
 
   const inputs  = document.querySelectorAll('.rating-input');
   const ratings = Array.from(inputs).map(i => parseInt(i.value));
   const ratedValues = ratings.filter((_, i) => !trackTags[i]);
   const avg = ratedValues.length
-    ? (ratedValues.reduce((a, b) => a + b, 0) / ratedValues.length).toFixed(1)
-    : '—';
+    ? (ratedValues.reduce((a, b) => a + b, 0) / ratedValues.length).toFixed(1) : '—';
+
+  const extras = getExtras();
 
   const entry = {
-    albumId: currentAlbum.id,
-    name:    currentAlbum.name,
-    artist:  currentAlbum.artists.map(a => a.name).join(', '),
-    img:     currentAlbum.images?.[1]?.url || currentAlbum.images?.[0]?.url || '',
-    avg,
-    ratings,
+    albumId:  currentAlbum.id,
+    name:     currentAlbum.name,
+    artist:   currentAlbum.artists.map(a => a.name).join(', '),
+    img:      currentAlbum.images?.[1]?.url || currentAlbum.images?.[0]?.url || '',
+    avg, ratings,
     trackTags: { ...trackTags },
     favourites: [...favourites],
-    date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    date: new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }),
     savedAt: Date.now(),
   };
 
+  // Always save locally
   const raw = localStorage.getItem('spotirate_saved');
   const saved = raw ? JSON.parse(raw) : [];
-
-  // Replace if same album already saved
   const existing = saved.findIndex(s => s.albumId === entry.albumId);
   if (existing >= 0) saved[existing] = entry;
   else saved.push(entry);
-
   localStorage.setItem('spotirate_saved', JSON.stringify(saved));
+
+  // Also save to Supabase if logged in
+  const token = getAuthToken?.();
+  if (token) {
+    try {
+      await fetch('/.netlify/functions/save-rating', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          album_id:    currentAlbum.id,
+          album_name:  currentAlbum.name,
+          artist_name: entry.artist,
+          album_img:   entry.img,
+          avg_score:   avg,
+          ratings,
+          track_tags:  trackTags,
+          favourites:  [...favourites],
+          review:      extras.review,
+          reviewer_name: extras.name,
+          theme:       currentTheme,
+        }),
+      });
+    } catch (err) {
+      console.warn('Online save failed, kept locally:', err);
+    }
+  }
+
   showToast('save-toast');
+  if (btn) { btn.innerHTML = 'SAVE RATING'; btn.disabled = false; }
 }
 
-// ─── AUTO-LOAD FROM URL PARAM ─────────────────────────────────────────────────
-// Supports /search?album=ALBUM_ID (linked from artist page)
+// ─── URL PARAM AUTO-LOAD ─────────────────────────────────────────────────────
 async function checkUrlParam() {
   const params = new URLSearchParams(window.location.search);
   const albumId = params.get('album');
@@ -585,7 +600,9 @@ function resetAll() {
   trackTags = {};
   favourites = new Set();
   currentAlbum = null;
+  loadRecentRatings();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 getToken().then(checkUrlParam);
+loadRecentRatings();

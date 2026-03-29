@@ -8,6 +8,12 @@
 [build.processing.html]
   pretty_urls = true
 
+# Pages
+[[redirects]]
+  from = "/search"
+  to = "/search.html"
+  status = 200
+
 [[redirects]]
   from = "/artist"
   to = "/artist.html"
@@ -16,6 +22,21 @@
 [[redirects]]
   from = "/saved"
   to = "/saved.html"
+  status = 200
+
+[[redirects]]
+  from = "/profile"
+  to = "/profile.html"
+  status = 200
+
+[[redirects]]
+  from = "/friends"
+  to = "/friends.html"
+  status = 200
+
+[[redirects]]
+  from = "/auth/callback"
+  to = "/auth/callback.html"
   status = 200
 
 [[headers]]

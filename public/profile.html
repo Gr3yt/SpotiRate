@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpotiRate — Profile</title>
+<link rel="icon" type="image/png" href="/images/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  .profile-hero {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .profile-hero::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, #1DB95418 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .profile-avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .profile-info { flex: 1; }
+  .profile-name { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .profile-discord { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+
+  .profile-stats {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .stat { display: flex; flex-direction: column; gap: 0.1rem; }
+  .stat-num { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 0.65rem; color: var(--text-muted); }
+
+  .profile-actions { display: flex; gap: 0.5rem; align-items: flex-start; }
+
+  .friend-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    padding: 0.4rem 0.9rem;
+    border-radius: 7px;
+    cursor: pointer;
+    border: 1px solid var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent);
+    transition: background 0.15s;
+  }
+
+  .friend-btn:hover { background: #1DB95433; }
+  .friend-btn.remove { border-color: var(--border); background: var(--surface2); color: var(--text-muted); }
+
+  /* RATINGS GRID */
+  .ratings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .rating-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+    position: relative;
+  }
+
+  .rating-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+  .rating-card img {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    object-fit: cover;
+    margin-bottom: 0.65rem;
+  }
+
+  .rating-card-name { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rating-card-artist { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .rating-card-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent-dim);
+    border: 1px solid #1DB95433;
+    border-radius: 5px;
+    padding: 2px 8px;
+  }
+
+  .rating-card-score-num { font-family: 'Space Mono', monospace; font-size: 0.8rem; font-weight: 700; color: var(--accent); }
+  .rating-card-score-label { font-size: 0.58rem; color: var(--text-muted); }
+
+  .featured-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: #f5c84222;
+    border: 1px solid #f5c84244;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.5rem;
+    color: #f5c842;
+    letter-spacing: 0.08em;
+  }
+
+  .feature-toggle {
+    position: absolute;
+    top: 8px; left: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 6px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: none;
+    transition: color 0.15s;
+  }
+
+  .rating-card:hover .feature-toggle { display: block; }
+  .feature-toggle.active { color: #f5c842; border-color: #f5c84244; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+
+  .modal-close:hover { color: var(--text); }
+
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0 1rem;
+  }
+
+  .section-divider-line { flex: 1; height: 1px; background: var(--border); }
+  .section-divider-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <a href="/" class="header-logo">SpotiRate</a>
+  <nav class="header-nav">
+    <a href="/search" class="nav-link">Search</a>
+    <a href="/artist" class="nav-link">Artists</a>
+    <a href="/saved" class="nav-link">Saved</a>
+    <a href="/friends" class="nav-link">Friends</a>
+  </nav>
+  <div id="auth-area"></div>
+</header>
+
+<main>
+  <div id="profile-content">
+    <div id="status-msg" style="text-align:center;padding:3rem;color:var(--text-muted);font-size:0.85rem">
+      <span class="spinner"></span> Loading profile...
+    </div>
+  </div>
+</main>
+
+<!-- RATING MODAL -->
+<div class="modal-overlay" id="rating-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕ Close</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js"></script>
+<script>
+  let featuredIds = [];
+  let isOwnProfile = false;
+  let profileUserId = null;
+
+  async function loadProfile() {
+    await initAuth();
+
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('user_id') || currentUser?.id;
+    if (!userId) {
+      document.getElementById('profile-content').innerHTML = '<div style="text-align:center;padding:3rem;color:var(--text-muted)">No profile found. <a href="/" style="color:var(--accent)">Go home</a></div>';
+      return;
+    }
+
+    isOwnProfile = currentUser?.id === userId;
+    profileUserId = userId;
+
+    try {
+      const res = await fetch(`/.netlify/functions/get-profile?user_id=${userId}`);
+      const { profile, ratings } = await res.json();
+      featuredIds = profile.featured_rating_ids || [];
+      renderProfile(profile, ratings);
+    } catch (e) {
+      document.getElementById('profile-content').innerHTML = '<div style="text-align:center;padding:3rem;color:var(--red)">Failed to load profile.</div>';
+    }
+  }
+
+  function renderProfile(profile, ratings) {
+    const avatar = profile.discord_avatar
+      ? `https://cdn.discordapp.com/avatars/${profile.discord_id}/${profile.discord_avatar}.png`
+      : '';
+
+    const avgAll = ratings.length
+      ? (ratings.reduce((a, b) => a + parseFloat(b.avg_score || 0), 0) / ratings.length).toFixed(1)
+      : '—';
+
+    const friendBtnHtml = !isOwnProfile && currentUser ? `
+      <button class="friend-btn" onclick="addFriend('${profile.id}')">+ Add Friend</button>
+    ` : '';
+
+    const featured = ratings.filter(r => featuredIds.includes(r.id));
+    const rest     = ratings.filter(r => !featuredIds.includes(r.id));
+
+    document.getElementById('profile-content').innerHTML = `
+      <div class="profile-hero">
+        <img class="profile-avatar" src="${avatar}" alt="">
+        <div class="profile-info">
+          <div class="profile-name">${profile.discord_username || 'User'}</div>
+          <div class="profile-discord">Discord</div>
+          <div class="profile-stats">
+            <div class="stat"><span class="stat-num">${ratings.length}</span><span class="stat-label">Ratings</span></div>
+            <div class="stat"><span class="stat-num">${avgAll}</span><span class="stat-label">Avg Score</span></div>
+            <div class="stat"><span class="stat-num">${featured.length}</span><span class="stat-label">Featured</span></div>
+          </div>
+        </div>
+        <div class="profile-actions">${friendBtnHtml}</div>
+      </div>
+
+      ${featured.length ? `
+        <div class="section-divider">
+          <div class="section-divider-line"></div>
+          <div class="section-divider-label">⭐ Featured</div>
+          <div class="section-divider-line"></div>
+        </div>
+        <div class="ratings-grid">${featured.map(r => ratingCardHtml(r, true)).join('')}</div>
+      ` : ''}
+
+      <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-label">All Ratings</div>
+        <div class="section-divider-line"></div>
+      </div>
+      ${rest.length ? `<div class="ratings-grid">${rest.map(r => ratingCardHtml(r, false)).join('')}</div>`
+        : '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:2rem">No ratings yet.</div>'}
+    `;
+  }
+
+  function ratingCardHtml(r, isFeatured) {
+    const featuredClass = isFeatured ? 'active' : '';
+    const featureBtn = isOwnProfile ? `
+      <button class="feature-toggle ${featuredClass}" onclick="event.stopPropagation();toggleFeatured('${r.id}', this)" title="${isFeatured ? 'Unfeature' : 'Feature'}">★</button>
+    ` : '';
+    const featuredBadge = isFeatured ? '<div class="featured-badge">FEATURED</div>' : '';
+
+    return `
+      <div class="rating-card" onclick="openRating('${r.id}')">
+        ${featureBtn}
+        ${featuredBadge}
+        <img src="${r.album_img}" alt="">
+        <div class="rating-card-name">${r.album_name}</div>
+        <div class="rating-card-artist">${r.artist_name}</div>
+        <div class="rating-card-score">
+          <span class="rating-card-score-num">${r.avg_score}</span>
+          <span class="rating-card-score-label">/ 10</span>
+        </div>
+      </div>
+    `;
+  }
+
+  async function toggleFeatured(ratingId, btn) {
+    if (featuredIds.includes(ratingId)) {
+      featuredIds = featuredIds.filter(id => id !== ratingId);
+      btn.classList.remove('active');
+    } else {
+      if (featuredIds.length >= 6) { alert('Max 6 featured ratings.'); return; }
+      featuredIds.push(ratingId);
+      btn.classList.add('active');
+    }
+
+    await fetch('/.netlify/functions/set-featured', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ featuredIds }),
+    });
+  }
+
+  async function addFriend(friendId) {
+    const res = await fetch('/.netlify/functions/friends?action=add', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ friendId }),
+    });
+    if (res.ok) alert('Friend request sent!');
+  }
+
+  // Rating modal
+  let allRatings = [];
+
+  function openRating(id) {
+    const rating = allRatings.find(r => r.id === id);
+    if (!rating) return;
+
+    const accent = { dark:'#1DB954', green:'#1DB954', midnight:'#9999ff', warm:'#e08030', albumart:'#ffffff' }[rating.theme] || '#1DB954';
+    const ratings = rating.ratings || [];
+    const tags = rating.track_tags || {};
+    const favs = new Set(rating.favourites || []);
+
+    const trackRows = (rating.ratings || []).map((r, i) => {
+      const tag = tags[i];
+      const isFav = favs.has(i);
+      const color = r <= 3 ? '#e05c5c' : r <= 6 ? '#e0b95c' : accent;
+      const ratingHtml = tag
+        ? `<span class="ct-tag">${tag}</span>`
+        : `<div class="ct-bar-wrap"><div class="ct-bar" style="width:${r*10}%;background:${color}"></div></div><span class="ct-score" style="color:${color}">${r}</span>`;
+      return `<div class="card-track${isFav?' card-track--fav':''}">
+        ${isFav?'<span class="ct-fav">★</span>':''}
+        <span class="ct-num">${i+1}</span>
+        <span class="ct-name">Track ${i+1}</span>
+        ${ratingHtml}
+      </div>`;
+    }).join('');
+
+    document.getElementById('modal-content').innerHTML = `
+      <div id="modal-card" class="theme-${rating.theme}" style="border-radius:10px;padding:20px;background:${rating.theme==='dark'?'#0f0f0f':rating.theme==='green'?'#081a0f':rating.theme==='midnight'?'#0a0a1a':rating.theme==='warm'?'#1a0f08':'#111'}">
+        <div class="card-header">
+          <img class="card-cover" src="${rating.album_img}" alt="">
+          <div class="card-info">
+            <div class="card-type-tag">ALBUM</div>
+            <div class="card-title">${rating.album_name}</div>
+            <div class="card-artist">${rating.artist_name}</div>
+            <div class="card-overall">
+              <span class="card-overall-num">${rating.avg_score}</span>
+              <span class="card-overall-label">/ 10 overall</span>
+            </div>
+          </div>
+        </div>
+        ${rating.review ? `<div class="card-review">"${rating.review}"</div>` : ''}
+        <div class="card-divider"></div>
+        <div class="card-tracks">${trackRows}</div>
+        <div class="card-footer">
+          <span class="card-footer-brand">SPOTIRATE</span>
+          ${rating.reviewer_name ? `<span class="card-footer-name">rated by ${rating.reviewer_name}</span>` : ''}
+          <span class="card-footer-date">${new Date(rating.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>
+        </div>
+      </div>
+      <div style="margin-top:1rem;display:flex;gap:0.5rem">
+        <a href="/search?album=${rating.album_id}" style="background:var(--accent);color:#000;padding:0.6rem 1rem;border-radius:8px;font-family:'Space Mono',monospace;font-size:0.7rem;font-weight:700;text-decoration:none;letter-spacing:0.06em">Rate Again</a>
+      </div>
+    `;
+
+    document.getElementById('rating-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('rating-modal').classList.remove('open');
+  }
+
+  // Store ratings for modal
+  const origRender = window.renderProfile;
+  const _fetch = window.fetch;
+
+  // Patch to store ratings
+  async function loadProfileWithStore() {
+    await initAuth();
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('user_id') || currentUser?.id;
+    if (!userId) return;
+    isOwnProfile = currentUser?.id === userId;
+    profileUserId = userId;
+    const res = await _fetch(`/.netlify/functions/get-profile?user_id=${userId}`);
+    const { profile, ratings } = await res.json();
+    allRatings = ratings;
+    featuredIds = profile.featured_rating_ids || [];
+    renderProfile(profile, ratings);
+  }
+
+  document.addEventListener('DOMContentLoaded', loadProfileWithStore);
+</script>
+</body>
+</html>

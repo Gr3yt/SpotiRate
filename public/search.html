@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="style.css">
-<script src="https://kit.fontawesome.com/2125d679c7.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -20,8 +20,9 @@
     <a href="/search" class="nav-link active">Search</a>
     <a href="/artist" class="nav-link">Artists</a>
     <a href="/saved" class="nav-link">Saved</a>
+    <a href="/friends" class="nav-link">Friends</a>
   </nav>
-  <span id="token-status">CONNECTING...</span>
+  <div id="auth-area"></div>
 </header>
 
 <main>
@@ -37,6 +38,12 @@
     </div>
     <div id="results-list"></div>
     <div id="status-msg"></div>
+
+    <!-- RECENT RATINGS -->
+    <div id="recent-section" style="display:none">
+      <div class="panel-label" style="margin-top:1.5rem;margin-bottom:0.75rem">Recent Ratings</div>
+      <div id="recent-list" class="recent-list"></div>
+    </div>
   </div>
 
   <!-- RATER PANEL -->
@@ -44,7 +51,6 @@
 
     <div class="album-header fade-in" id="album-header"></div>
 
-    <!-- MULTI-DISC BANNER -->
     <div id="disc-banner" class="disc-banner" style="display:none">
       <div class="disc-banner-left">
         <span class="disc-icon">💿</span>
@@ -59,14 +65,12 @@
       </label>
     </div>
 
-    <!-- EXTRAS PANEL -->
     <div class="extras-panel fade-in">
       <button class="extras-toggle" onclick="toggleExtras(this)">
         <span>EXTRAS</span>
         <span class="extras-arrow">▼</span>
       </button>
       <div class="extras-body" id="extras-body">
-
         <div class="extra-row">
           <div class="extra-label">
             <span>Your Name</span>
@@ -74,7 +78,6 @@
           </div>
           <input type="text" id="extra-name" class="extra-input" placeholder="e.g. gr3yt" maxlength="30">
         </div>
-
         <div class="extra-row extra-row--textarea">
           <div class="extra-label">
             <span>Written Review</span>
@@ -85,7 +88,6 @@
             <div id="review-count" class="extra-char-count">0 / 300</div>
           </div>
         </div>
-
         <div class="extra-row extra-row--toggle">
           <div class="extra-label">
             <span>Show Track Length</span>
@@ -96,7 +98,6 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
-
         <div class="extra-row extra-row--toggle">
           <div class="extra-label">
             <span>Show Popularity Score</span>
@@ -107,9 +108,6 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
-
-        <!-- ── ADD NEW EXTRAS ABOVE THIS LINE ── -->
-
       </div>
     </div>
 
@@ -126,7 +124,6 @@
   <div id="card-wrapper">
     <div class="section-label">Your Rating Card</div>
 
-    <!-- THEME PICKER -->
     <div class="theme-picker">
       <button class="theme-btn active" data-theme="dark"     onclick="setTheme('dark', this)">DARK</button>
       <button class="theme-btn"        data-theme="green"    onclick="setTheme('green', this)">GREEN</button>
@@ -135,12 +132,11 @@
       <button class="theme-btn"        data-theme="albumart" onclick="setTheme('albumart', this)">ALBUM ART</button>
     </div>
 
-    <!-- ASPECT RATIO PICKER -->
     <div class="ratio-picker">
-      <button class="ratio-btn active" data-ratio="standard" onclick="setRatio('standard', this)" title="Standard">Default</button>
-      <button class="ratio-btn" data-ratio="square"   onclick="setRatio('square', this)"   title="Square 1:1"><i class="fa-brands fa-instagram"></i> Square</button>
-      <button class="ratio-btn" data-ratio="wide"     onclick="setRatio('wide', this)"     title="Wide 16:9"><i class="fa-brands fa-twitter"></i> Wide</button>
-      <button class="ratio-btn" data-ratio="tall"     onclick="setRatio('tall', this)"     title="Story 9:16"><i class="fa-solid fa-mobile"></i> Story</button>
+      <button class="ratio-btn active" data-ratio="standard" onclick="setRatio('standard', this)">▭ Standard</button>
+      <button class="ratio-btn" data-ratio="square"   onclick="setRatio('square', this)">⬜ Square</button>
+      <button class="ratio-btn" data-ratio="wide"     onclick="setRatio('wide', this)">▬ Wide</button>
+      <button class="ratio-btn" data-ratio="tall"     onclick="setRatio('tall', this)">▮ Story</button>
     </div>
 
     <div id="export-card-wrap">
@@ -150,7 +146,7 @@
     <div class="card-actions">
       <button onclick="downloadCard(event)">DOWNLOAD</button>
       <button class="secondary" onclick="copyCard(event)">COPY IMAGE</button>
-      <button class="secondary" onclick="saveRating()">SAVE RATING</button>
+      <button class="secondary" id="save-btn" onclick="saveRating(event)">SAVE RATING</button>
       <button class="secondary" onclick="document.getElementById('card-wrapper').style.display='none'">HIDE</button>
     </div>
     <div id="copy-toast" class="copy-toast">Copied to clipboard!</div>
@@ -159,6 +155,7 @@
 
 </main>
 
+<script src="/auth.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

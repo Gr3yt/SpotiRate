@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpotiRate — Friends</title>
+<link rel="icon" type="image/png" href="/images/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  .friends-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .friend-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+
+  .friend-card:hover { border-color: var(--accent); }
+
+  .friend-avatar {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+  }
+
+  .friend-name { font-size: 0.9rem; font-weight: 600; }
+  .friend-tag  { font-family: 'Space Mono', monospace; font-size: 0.58rem; color: var(--text-muted); letter-spacing: 0.06em; }
+
+  .friend-actions { display: flex; gap: 0.4rem; margin-top: 0.25rem; width: 100%; }
+
+  .friend-actions a,
+  .friend-actions button {
+    flex: 1;
+    padding: 0.35rem;
+    border-radius: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .friend-actions a { background: var(--accent-dim); border: 1px solid #1DB95433; color: var(--accent); }
+  .friend-actions a:hover { background: #1DB95433; }
+
+  .friend-actions button { background: var(--surface2); border: 1px solid var(--border); color: var(--red); }
+  .friend-actions button:hover { background: #e05c5c11; }
+
+  .pending-card {
+    background: var(--surface);
+    border: 1px solid #f5c84233;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .pending-card img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+  .pending-info { flex: 1; }
+  .pending-name { font-size: 0.875rem; font-weight: 500; }
+  .pending-label { font-family: 'Space Mono', monospace; font-size: 0.58rem; color: #f5c842; margin-top: 0.1rem; }
+
+  .pending-actions { display: flex; gap: 0.4rem; }
+
+  .accept-btn {
+    background: var(--accent-dim);
+    border: 1px solid #1DB95433;
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--accent);
+    cursor: pointer;
+  }
+
+  .decline-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  .add-friend-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .add-friend-row { display: flex; gap: 0.75rem; }
+  .add-friend-row input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem;
+    outline: none;
+  }
+  .add-friend-row input:focus { border-color: var(--accent); }
+  .add-friend-row input::placeholder { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <a href="/" class="header-logo">SpotiRate</a>
+  <nav class="header-nav">
+    <a href="/search" class="nav-link">Search</a>
+    <a href="/artist" class="nav-link">Artists</a>
+    <a href="/saved" class="nav-link">Saved</a>
+    <a href="/friends" class="nav-link active">Friends</a>
+  </nav>
+  <div id="auth-area"></div>
+</header>
+
+<main>
+  <div id="friends-content">
+    <div style="text-align:center;padding:3rem;color:var(--text-muted)">
+      <span class="spinner"></span> Loading...
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js"></script>
+<script>
+  async function loadFriends() {
+    await initAuth();
+
+    if (!currentUser) {
+      document.getElementById('friends-content').innerHTML = `
+        <div class="empty-state">
+          <p>Sign in to see your friends.</p>
+          <button class="discord-btn" onclick="signInWithDiscord()" style="margin-top:1rem">Sign in with Discord</button>
+        </div>
+      `;
+      return;
+    }
+
+    const res = await fetch('/.netlify/functions/friends?action=list', {
+      headers: authHeaders()
+    });
+    const { friends, pending } = await res.json();
+    renderFriends(friends || [], pending || []);
+  }
+
+  function renderFriends(friends, pending) {
+    const content = document.getElementById('friends-content');
+
+    const pendingHtml = pending.length ? `
+      <div class="panel-label">Pending Requests</div>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.5rem">
+        ${pending.map(p => {
+          const u = p.requester;
+          const avatar = u.discord_avatar
+            ? `https://cdn.discordapp.com/avatars/${u.discord_id}/${u.discord_avatar}.png`
+            : '';
+          return `
+            <div class="pending-card">
+              <img src="${avatar}" alt="">
+              <div class="pending-info">
+                <div class="pending-name">${u.discord_username}</div>
+                <div class="pending-label">FRIEND REQUEST</div>
+              </div>
+              <div class="pending-actions">
+                <button class="accept-btn" onclick="acceptFriend('${p.id}')">Accept</button>
+                <button class="decline-btn" onclick="declineFriend('${p.id}')">Decline</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    ` : '';
+
+    const friendsHtml = friends.length ? `
+      <div class="friends-grid">
+        ${friends.map(f => {
+          const u = f.friend;
+          const avatar = u.discord_avatar
+            ? `https://cdn.discordapp.com/avatars/${u.discord_id}/${u.discord_avatar}.png`
+            : '';
+          return `
+            <div class="friend-card">
+              <img class="friend-avatar" src="${avatar}" alt="">
+              <div class="friend-name">${u.discord_username}</div>
+              <div class="friend-tag">Discord</div>
+              <div class="friend-actions">
+                <a href="/profile?user_id=${u.id}">View Profile</a>
+                <button onclick="removeFriend('${u.id}')">Remove</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    ` : '<div class="empty-state">No friends yet. Share your profile link to add friends.</div>';
+
+    content.innerHTML = `
+      <div class="add-friend-box">
+        <div class="panel-label">Find a Friend</div>
+        <div class="add-friend-row">
+          <input type="text" id="friend-search" placeholder="Enter their SpotiRate profile URL or user ID...">
+          <button onclick="searchFriend()">FIND</button>
+        </div>
+        <div id="friend-search-result" style="margin-top:0.75rem"></div>
+      </div>
+      ${pendingHtml}
+      <div class="panel-label">Friends (${friends.length})</div>
+      ${friendsHtml}
+    `;
+  }
+
+  async function searchFriend() {
+    const input = document.getElementById('friend-search').value.trim();
+    if (!input) return;
+
+    // Extract user_id from URL or use directly
+    let userId = input;
+    if (input.includes('user_id=')) {
+      userId = new URLSearchParams(input.split('?')[1]).get('user_id');
+    }
+
+    const res = await fetch(`/.netlify/functions/get-profile?user_id=${userId}`);
+    if (!res.ok) {
+      document.getElementById('friend-search-result').innerHTML = '<span style="color:var(--red);font-size:0.8rem">User not found.</span>';
+      return;
+    }
+
+    const { profile } = await res.json();
+    const avatar = profile.discord_avatar
+      ? `https://cdn.discordapp.com/avatars/${profile.discord_id}/${profile.discord_avatar}.png`
+      : '';
+
+    document.getElementById('friend-search-result').innerHTML = `
+      <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px">
+        <img src="${avatar}" style="width:36px;height:36px;border-radius:50%">
+        <span style="flex:1;font-size:0.875rem">${profile.discord_username}</span>
+        <button onclick="sendFriendRequest('${profile.id}')" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:0.35rem 0.75rem;font-family:'Space Mono',monospace;font-size:0.65rem;font-weight:700;cursor:pointer">+ Add</button>
+      </div>
+    `;
+  }
+
+  async function sendFriendRequest(friendId) {
+    const res = await fetch('/.netlify/functions/friends?action=add', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ friendId })
+    });
+    if (res.ok) {
+      document.getElementById('friend-search-result').innerHTML = '<span style="color:var(--accent);font-size:0.8rem">✓ Friend request sent!</span>';
+    }
+  }
+
+  async function acceptFriend(requestId) {
+    await fetch('/.netlify/functions/friends?action=accept', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ requestId })
+    });
+    loadFriends();
+  }
+
+  async function declineFriend(requestId) {
+    // Just delete the pending request
+    await fetch('/.netlify/functions/friends', {
+      method: 'DELETE',
+      headers: authHeaders(),
+      body: JSON.stringify({ friendId: requestId })
+    });
+    loadFriends();
+  }
+
+  async function removeFriend(friendId) {
+    if (!confirm('Remove this friend?')) return;
+    await fetch('/.netlify/functions/friends', {
+      method: 'DELETE',
+      headers: authHeaders(),
+      body: JSON.stringify({ friendId })
+    });
+    loadFriends();
+  }
+
+  document.addEventListener('DOMContentLoaded', loadFriends);
+</script>
+</body>
+</html>

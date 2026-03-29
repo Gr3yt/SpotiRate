@@ -1,0 +1,8 @@
+{
+  "name": "spotirate",
+  "version": "1.0.0",
+  "description": "Album rating tool",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}
